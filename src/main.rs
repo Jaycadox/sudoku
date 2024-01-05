@@ -205,7 +205,7 @@ fn draw_sudoku(game: &mut SudokuGame, drawing: &DrawingSettings) {
             start_y,
             rect_size * 3.0,
             rect_size * 3.0,
-            2.0,
+            5.0,
             WHITE,
         );
     }
