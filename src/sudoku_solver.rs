@@ -1,10 +1,52 @@
-use std::sync::{Arc, Mutex};
+use std::{
+    sync::{mpsc::Receiver, Arc, Mutex},
+    thread::JoinHandle,
+};
 
 use bit_vec::BitVec;
 use macroquad::miniquad::debug;
 use threadpool::ThreadPool;
 
 use crate::sudoku_game::SudokuGame;
+
+pub enum SolveTaskStatus {
+    Done(Box<SudokuGame>),
+    Failed,
+    Waiting,
+}
+
+pub struct SolveTask {
+    _thread: JoinHandle<()>,
+    rx: Receiver<Option<SudokuGame>>,
+    status: SolveTaskStatus,
+}
+
+impl SolveTask {
+    pub fn new(game: &SudokuGame) -> Self {
+        let (tx, rx) = std::sync::mpsc::channel();
+        let game = game.clone();
+        Self {
+            rx,
+            status: SolveTaskStatus::Waiting,
+            _thread: std::thread::spawn(move || {
+                if let Err(e) = tx.send(solve(&game)) {
+                    eprintln!("solve_task :: failed to send to parent thread, the game might have already reset. {e}");
+                }
+            }),
+        }
+    }
+
+    pub fn get(&mut self) -> &SolveTaskStatus {
+        if let Ok(result) = self.rx.try_recv() {
+            self.status = match result {
+                Some(game) => SolveTaskStatus::Done(Box::new(game)),
+                None => SolveTaskStatus::Failed,
+            };
+        }
+
+        &self.status
+    }
+}
 
 pub fn solve(game: &SudokuGame) -> Option<SudokuGame> {
     let start = std::time::Instant::now();

@@ -1,10 +1,23 @@
 use ndarray::{s, Array2, ArrayView, ArrayView2, Axis, Ix1};
 
-#[derive(Clone)]
+use crate::sudoku_solver::{SolveTask, SolveTaskStatus};
+
 pub struct SudokuGame {
     pub cells: Array2<u8>,
     pub unradified: Vec<u8>,
     pub selected_cell: Option<(u32, u32)>,
+    solve_task: Option<SolveTask>,
+}
+
+impl Clone for SudokuGame {
+    fn clone(&self) -> Self {
+        Self {
+            cells: self.cells.clone(),
+            unradified: self.unradified.clone(),
+            selected_cell: self.selected_cell,
+            solve_task: None,
+        }
+    }
 }
 
 impl SudokuGame {
@@ -21,11 +34,16 @@ impl SudokuGame {
                 unradified.push(i as u8);
             }
         }
-        SudokuGame {
+        let mut game = SudokuGame {
+            solve_task: None,
             cells,
             unradified,
             selected_cell: None,
-        }
+        };
+
+        game.solve_task = Some(SolveTask::new(&game));
+
+        game
     }
 
     #[allow(dead_code)]
@@ -36,6 +54,14 @@ impl SudokuGame {
             }
             println!();
         }
+    }
+
+    pub fn solve_task_status(&mut self) -> &SolveTaskStatus {
+        // in future, maybe return Failed if solve task does not exist
+        self.solve_task
+            .as_mut()
+            .expect("solve task should always be created")
+            .get()
     }
 
     #[inline(always)]
