@@ -1,16 +1,28 @@
 use std::collections::HashSet;
 
-use macroquad::miniquad::window::screen_size;
 use macroquad::prelude::*;
+use macroquad::{miniquad::window::screen_size, text};
 mod sudoku_game;
 mod sudoku_solver;
 mod task_status;
 use sudoku_game::SudokuGame;
 use task_status::{GetTask, TaskStatus};
 
-const STATUS_BAR_HEIGHT: f32 = 50.0;
+const STATUS_BAR_HEIGHT: f32 = 30.0;
 
-fn draw_sudoku(game: &mut SudokuGame) {
+struct DrawingSettings {
+    font: Font,
+}
+
+impl Default for DrawingSettings {
+    fn default() -> Self {
+        Self {
+            font: text::load_ttf_font_from_bytes(include_bytes!("./TWN19.ttf")).unwrap(),
+        }
+    }
+}
+
+fn draw_sudoku(game: &mut SudokuGame, drawing: &DrawingSettings) {
     let (mut width, mut height) = screen_size();
     height -= STATUS_BAR_HEIGHT;
     let padding = 30.0;
@@ -166,7 +178,9 @@ fn draw_sudoku(game: &mut SudokuGame) {
                 } else {
                     WHITE
                 };
-                draw_text(
+
+                let _ = draw_and_measure_text(
+                    drawing,
                     &format!("{cell}"),
                     start_x + rect_size / 2.0 - number_size.width / 2.0,
                     start_y + rect_size / 2.0 - -number_size.height / 2.0,
@@ -273,13 +287,26 @@ fn draw_sudoku(game: &mut SudokuGame) {
     }
 }
 
-fn draw_and_measure_text(text: &str, x: f32, y: f32, font_size: f32, color: Color) -> (f32, f32) {
-    draw_text(text, x, y, font_size, color);
-    let dim = measure_text(text, None, font_size as u16, 1.0);
+fn draw_and_measure_text(
+    drawing: &DrawingSettings,
+    text: &str,
+    x: f32,
+    y: f32,
+    font_size: f32,
+    color: Color,
+) -> (f32, f32) {
+    let params = TextParams {
+        font: Some(&drawing.font),
+        color,
+        font_size: font_size as u16,
+        ..Default::default()
+    };
+    draw_text_ex(text, x, y, params);
+    let dim = measure_text(text, Some(&drawing.font), font_size as u16, 1.0);
     (dim.width, dim.height)
 }
 
-fn draw_status_bar(game: &mut SudokuGame) {
+fn draw_status_bar(game: &mut SudokuGame, drawing: &DrawingSettings) {
     let (width, height) = screen_size();
 
     let (start_x, start_y) = (0.0, height - STATUS_BAR_HEIGHT);
@@ -294,24 +321,35 @@ fn draw_status_bar(game: &mut SudokuGame) {
     );
 
     let mut cursor_x = 20.0;
-    let cursor_y = start_y + 37.0;
-    let bounds = draw_and_measure_text("CpuSolver :: ", cursor_x, cursor_y, 50.0, WHITE);
+
+    let font_size = STATUS_BAR_HEIGHT * 0.9;
+    let cursor_y = start_y + (font_size / 1.25);
+
+    let bounds = draw_and_measure_text(
+        drawing,
+        "CpuSolver :: ",
+        cursor_x,
+        cursor_y,
+        font_size,
+        WHITE,
+    );
     cursor_x += bounds.0 + 5.0;
     match game.get_task_status() {
         TaskStatus::Done(_) => {
-            draw_and_measure_text("done  ", cursor_x, cursor_y, 50.0, GREEN);
+            draw_and_measure_text(drawing, "done  ", cursor_x, cursor_y, font_size, GREEN);
         }
         TaskStatus::Waiting => {
-            draw_and_measure_text("...   ", cursor_x, cursor_y, 50.0, YELLOW);
+            draw_and_measure_text(drawing, "...   ", cursor_x, cursor_y, font_size, YELLOW);
         }
         TaskStatus::Failed => {
-            draw_and_measure_text("failed", cursor_x, cursor_y, 50.0, RED);
+            draw_and_measure_text(drawing, "failed", cursor_x, cursor_y, font_size, RED);
         }
     }
 }
 
 #[macroquad::main("Sudoku")]
 async fn main() {
+    let drawing = DrawingSettings::default();
     let mut game = SudokuGame::new();
     let mut i = 0;
     loop {
@@ -321,8 +359,8 @@ async fn main() {
             println!("fps: {}", get_fps());
         }
         clear_background(BLACK);
-        draw_sudoku(&mut game);
-        draw_status_bar(&mut game);
+        draw_sudoku(&mut game, &drawing);
+        draw_status_bar(&mut game, &drawing);
         next_frame().await;
         std::thread::sleep(std::time::Duration::from_millis(8));
     }
