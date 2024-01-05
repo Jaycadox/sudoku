@@ -26,6 +26,8 @@ jobs:
       run: cargo build --release
     - name: Rename file
       run: mv target/release/sudoku target/release/sudoku-linux
+    - name: Strip file
+      run: strip target/release/sudoku-linux
     - name: Archive Linux artifacts
       uses: actions/upload-artifact@v2
       with:
@@ -103,7 +105,7 @@ jobs:
       id: create_release
       uses: softprops/action-gh-release@v1
       with:
-        tag_name: ${{ github.run_number }}
+        tag_name: Autobuild ${{ github.run_number }}
         body: Automatically generated build
         files: |
           ./sudoku-win.exe
