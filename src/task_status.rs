@@ -1,7 +1,7 @@
 pub enum TaskStatus<T> {
     Done(Box<T>),
     Failed,
-    Waiting,
+    Waiting(std::time::Instant),
 }
 
 pub trait GetTask<T> {

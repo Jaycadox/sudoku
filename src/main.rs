@@ -376,8 +376,20 @@ fn draw_status_bar(game: &mut SudokuGame, drawing: &DrawingSettings) {
         TaskStatus::Done(_) => {
             draw_and_measure_text(drawing, "done  ", cursor_x, cursor_y, font_size, GREEN);
         }
-        TaskStatus::Waiting => {
-            draw_and_measure_text(drawing, "...   ", cursor_x, cursor_y, font_size, YELLOW);
+        TaskStatus::Waiting(start_time) => {
+            draw_and_measure_text(
+                drawing,
+                &format!(
+                    "{:.3}s",
+                    std::time::Instant::now()
+                        .duration_since(*start_time)
+                        .as_secs_f32()
+                ),
+                cursor_x,
+                cursor_y,
+                font_size,
+                YELLOW,
+            );
         }
         TaskStatus::Failed => {
             draw_and_measure_text(drawing, "failed", cursor_x, cursor_y, font_size, RED);

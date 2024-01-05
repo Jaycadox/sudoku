@@ -21,7 +21,7 @@ impl SolveTask {
         let game = game.clone();
         Self {
             rx,
-            status: TaskStatus::<SudokuGame>::Waiting,
+            status: TaskStatus::<SudokuGame>::Waiting(std::time::Instant::now()),
             _thread: std::thread::spawn(move || {
                 if let Err(e) = tx.send(solve(&game)) {
                     eprintln!("solve_task :: failed to send to parent thread, the game might have already reset. {e}");
