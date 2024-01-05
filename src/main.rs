@@ -6,6 +6,7 @@ mod sudoku_game;
 mod sudoku_solver;
 mod task_status;
 use sudoku_game::SudokuGame;
+use sudoku_solver::SolveTask;
 use task_status::{GetTask, TaskStatus};
 
 const STATUS_BAR_PERCENTAGE: f32 = 0.03;
@@ -326,7 +327,9 @@ fn draw_sudoku(game: &mut SudokuGame, drawing: &DrawingSettings) {
                 *game = SudokuGame::new();
             }
             KeyCode::F1 => {
-                if let TaskStatus::Done(solved_game) = game.get_task_status() {
+                if is_key_down(KeyCode::LeftShift) {
+                    game.solve_task = Some(SolveTask::new(game));
+                } else if let TaskStatus::Done(solved_game) = game.get_task_status() {
                     game.cells = solved_game.clone().cells;
                 }
             }
