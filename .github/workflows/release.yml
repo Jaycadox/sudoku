@@ -100,6 +100,6 @@ jobs:
       id: create_release
       uses: softprops/action-gh-release@v1
       with:
-        tag_name: Autobuild -- $ {{ github.run_number }}
+        tag_name: ${{ github.run_number }}
         files: ./sudoku-*
         token: ${{ secrets.GITHUB_TOKEN }}
