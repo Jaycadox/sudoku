@@ -2,8 +2,8 @@ use std::collections::HashSet;
 
 use macroquad::miniquad::window::screen_size;
 use macroquad::prelude::*;
-
 mod sudoku_game;
+mod sudoku_solver;
 use sudoku_game::SudokuGame;
 
 const STATUS_BAR_HEIGHT: f32 = 50.0;
@@ -193,8 +193,11 @@ fn draw_sudoku(game: &mut SudokuGame) {
             WHITE,
         );
     }
+
+    let last_key_pressed = get_last_key_pressed();
+
     if let Some((sx, sy)) = &mut game.selected_cell {
-        if let Some(key) = get_last_key_pressed() {
+        if let Some(key) = last_key_pressed {
             match key {
                 KeyCode::Up | KeyCode::W => {
                     if is_key_down(KeyCode::LeftShift) {
@@ -248,17 +251,28 @@ fn draw_sudoku(game: &mut SudokuGame) {
                         *sx -= 1;
                     }
                 }
-                KeyCode::Tab => {
-                    *game = SudokuGame::new();
-                }
                 _ => {}
             }
+        }
+    }
+
+    if let Some(key_pressed) = last_key_pressed {
+        match key_pressed {
+            KeyCode::Tab => {
+                *game = SudokuGame::new();
+            }
+            KeyCode::F1 => {
+                if let Some(s_game) = sudoku_solver::solve(game) {
+                    game.cells = s_game.cells;
+                }
+            }
+            _ => {}
         }
     }
 }
 
 fn draw_status_bar(game: &mut SudokuGame) {
-    let (mut width, mut height) = screen_size();
+    let (width, height) = screen_size();
 
     let (start_x, start_y) = (0.0, height - STATUS_BAR_HEIGHT);
     let (bar_width, bar_height) = (width, STATUS_BAR_HEIGHT);

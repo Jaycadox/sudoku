@@ -11,7 +11,7 @@ impl SudokuGame {
     pub fn new() -> Self {
         let mut cells = Array2::zeros((9, 9));
         let inp =
-            "050010040107000602000905000208030501040070020901080406000401000304000709020060010";
+            "2.3.8....8..7...........1...6.5.7...4......3....1............82.5....6...1.......";
         let inp = inp.replace('.', "0");
         let mut unradified = Vec::new();
         for (i, cell) in cells.iter_mut().enumerate() {
@@ -28,13 +28,23 @@ impl SudokuGame {
         }
     }
 
+    #[allow(dead_code)]
+    pub fn print_board(&self) {
+        for row in self.rows() {
+            for cell in row {
+                print!("{} ", *cell);
+            }
+            println!();
+        }
+    }
+
     #[inline(always)]
-    fn xy_pos_to_idx(x: u32, y: u32, size: u32) -> u32 {
+    pub fn xy_pos_to_idx(x: u32, y: u32, size: u32) -> u32 {
         y * size + x
     }
 
     #[inline(always)]
-    fn idx_pos_to_xy(idx: u32, size: u32) -> (u32, u32) {
+    pub fn idx_pos_to_xy(idx: u32, size: u32) -> (u32, u32) {
         let x = idx % size;
         let y = idx / size;
 
