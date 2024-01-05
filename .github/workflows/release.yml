@@ -66,7 +66,7 @@ jobs:
     - name: Build for Windows
       run: cargo build --release
     - name: Rename file
-      run: ren target/release/sudoku.exe target/release/sudoku-win.exe
+      run: ren ${{ github.workspace }}/target/release/sudoku.exe ${{ github.workspace }}/target/release/sudoku-win.exe
     - name: Archive Windows artifacts
       uses: actions/upload-artifact@v2
       with:
