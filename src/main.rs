@@ -2,22 +2,22 @@ use std::collections::HashSet;
 
 use macroquad::miniquad::window::screen_size;
 use macroquad::prelude::*;
-use ndarray::{Array2, ArrayView, ArrayView2, Axis, Ix1, s};
+use ndarray::{s, Array2, ArrayView, ArrayView2, Axis, Ix1};
 
 #[derive(Clone)]
 struct SudokuGame {
     cells: Array2<u8>,
     unradified: Vec<u8>,
-    selected_cell: Option<(u32, u32)>
+    selected_cell: Option<(u32, u32)>,
 }
 
 impl SudokuGame {
     fn new() -> Self {
         let mut cells = Array2::zeros((9, 9));
-        let inp = "050010040107000602000905000208030501040070020901080406000401000304000709020060010";
-        let inp = inp.replace(".", "0");
+        let inp =
+            "050010040107000602000905000208030501040070020901080406000401000304000709020060010";
+        let inp = inp.replace('.', "0");
         let mut unradified = Vec::new();
-        
         for (i, cell) in cells.iter_mut().enumerate() {
             let val = inp.chars().nth(i).unwrap().to_digit(10).unwrap() as u8;
             *cell = val;
@@ -25,7 +25,11 @@ impl SudokuGame {
                 unradified.push(i as u8);
             }
         }
-        SudokuGame { cells, unradified, selected_cell: None }
+        SudokuGame {
+            cells,
+            unradified,
+            selected_cell: None,
+        }
     }
     fn rows(&self) -> Vec<ArrayView<u8, Ix1>> {
         (0..9)
@@ -39,7 +43,9 @@ impl SudokuGame {
     }
     fn boxes(&self) -> Array2<ArrayView2<u8>> {
         let boxes = (0..3)
-            .flat_map(|i| (0..3).map(move |j| self.cells.slice(s![i*3..(i+1)*3, j*3..(j+1)*3])))
+            .flat_map(|i| {
+                (0..3).map(move |j| self.cells.slice(s![i * 3..(i + 1) * 3, j * 3..(j + 1) * 3]))
+            })
             .collect::<Vec<_>>();
         Array2::from_shape_vec((3, 3), boxes).expect("bad vector shape")
     }
@@ -49,7 +55,7 @@ fn draw_sudoku(game: &mut SudokuGame) {
     let (mut width, mut height) = screen_size();
     let padding = 30.0;
     let s_padding = padding / 2.0;
-    width  -= padding; // padding
+    width -= padding; // padding
     height -= padding; // padding
 
     let rect_size = f32::min(width / 9.0, height / 9.0);
@@ -61,10 +67,15 @@ fn draw_sudoku(game: &mut SudokuGame) {
 
     let mut mouse_pos: Option<(u32, u32)> = None;
 
-    if raw_mouse_pos.0 > x_pad + s_padding && raw_mouse_pos.1 > y_pad + s_padding
+    if raw_mouse_pos.0 > x_pad + s_padding
+        && raw_mouse_pos.1 > y_pad + s_padding
         && raw_mouse_pos.0 < x_pad + s_padding + (rect_size * 9.0)
-        && raw_mouse_pos.1 < y_pad + s_padding + (rect_size * 9.0) {
-        mouse_pos = Some((((raw_mouse_pos.0 - x_pad - s_padding) / (rect_size)) as u32, ((raw_mouse_pos.1 - y_pad - s_padding) / (rect_size)) as u32));
+        && raw_mouse_pos.1 < y_pad + s_padding + (rect_size * 9.0)
+    {
+        mouse_pos = Some((
+            ((raw_mouse_pos.0 - x_pad - s_padding) / (rect_size)) as u32,
+            ((raw_mouse_pos.1 - y_pad - s_padding) / (rect_size)) as u32,
+        ));
     }
 
     let mut highlight_cells = Vec::new();
@@ -105,12 +116,21 @@ fn draw_sudoku(game: &mut SudokuGame) {
         let y = y as f32;
         for (x, cell) in row.iter().enumerate() {
             let x = x as f32;
-            let (start_x, start_y) = (x_pad + s_padding + (x * rect_size), y_pad + s_padding + (y * rect_size));
+            let (start_x, start_y) = (
+                x_pad + s_padding + (x * rect_size),
+                y_pad + s_padding + (y * rect_size),
+            );
 
             let unradified = game.unradified.contains(&(y as u8 * 9 + x as u8));
 
             if highlight_cells.contains(&(y as u32 * 9 + x as u32)) {
-                draw_rectangle(start_x, start_y, rect_size, rect_size, Color::new(1.00, 1.00, 1.00, 0.20));
+                draw_rectangle(
+                    start_x,
+                    start_y,
+                    rect_size,
+                    rect_size,
+                    Color::new(1.00, 1.00, 1.00, 0.20),
+                );
             }
 
             if let Some((mx, my)) = mouse_pos {
@@ -125,7 +145,13 @@ fn draw_sudoku(game: &mut SudokuGame) {
 
             if let Some((sx, sy)) = game.selected_cell {
                 if x == sx as f32 && y == sy as f32 {
-                    draw_rectangle(start_x, start_y, rect_size, rect_size, Color::new(1.00, 1.00, 1.00, 0.35));
+                    draw_rectangle(
+                        start_x,
+                        start_y,
+                        rect_size,
+                        rect_size,
+                        Color::new(1.00, 1.00, 1.00, 0.35),
+                    );
                     if unradified {
                         if let Some(key) = get_last_key_pressed() {
                             if let Some(mut value) = match key {
@@ -140,12 +166,14 @@ fn draw_sudoku(game: &mut SudokuGame) {
                                 KeyCode::Key9 => Some(9),
                                 KeyCode::Backspace | KeyCode::Key0 | KeyCode::Delete => Some(0),
                                 KeyCode::Space => Some(0xFF),
-                                _ => None
+                                _ => None,
                             } {
-                                if value == 0xFF && *cell == 0 { // Auto value
+                                if value == 0xFF && *cell == 0 {
+                                    // Auto value
                                     let mut nums = HashSet::new();
                                     value = 0;
-                                    { // By box
+                                    {
+                                        // By box
                                         let box_cord = (x as u32 / 3, y as u32 / 3);
                                         let box_id = box_cord.1 * 3 + box_cord.0;
                                         if let Some(b) = game.boxes().iter().nth(box_id as usize) {
@@ -156,9 +184,10 @@ fn draw_sudoku(game: &mut SudokuGame) {
                                             }
                                         }
                                     }
-                                    
-                                    { // By row
-                                        if let Some(b) = game.rows().iter().nth(y as usize) {
+
+                                    {
+                                        // By row
+                                        if let Some(b) = game.rows().get(y as usize) {
                                             for num in b {
                                                 if *num != 0 {
                                                     nums.insert(*num);
@@ -167,8 +196,9 @@ fn draw_sudoku(game: &mut SudokuGame) {
                                         }
                                     }
 
-                                    { // By col
-                                        if let Some(b) = game.cols().iter().nth(x as usize) {
+                                    {
+                                        // By col
+                                        if let Some(b) = game.cols().get(x as usize) {
                                             for num in b {
                                                 if *num != 0 {
                                                     nums.insert(*num);
@@ -176,7 +206,7 @@ fn draw_sudoku(game: &mut SudokuGame) {
                                             }
                                         }
                                     }
-                                    
+
                                     if nums.len() == 8 {
                                         for i in 1..=9 {
                                             if !nums.contains(&i) {
@@ -189,7 +219,8 @@ fn draw_sudoku(game: &mut SudokuGame) {
                                 }
 
                                 if value == 0 || game.cells[(y as usize, x as usize)] == 0 {
-                                    game.cells[(y as usize, x as usize)] = value; // no idea why it needs to be this way
+                                    game.cells[(y as usize, x as usize)] = value;
+                                    // no idea why it needs to be this way
                                 }
                             }
                         }
@@ -204,18 +235,34 @@ fn draw_sudoku(game: &mut SudokuGame) {
                 } else {
                     WHITE
                 };
-                draw_text(&format!("{cell}"), start_x + rect_size / 2.0 - number_size.width / 2.0, start_y + rect_size / 2.0 -  - number_size.height / 2.0, rect_size, text_col);
+                draw_text(
+                    &format!("{cell}"),
+                    start_x + rect_size / 2.0 - number_size.width / 2.0,
+                    start_y + rect_size / 2.0 - -number_size.height / 2.0,
+                    rect_size,
+                    text_col,
+                );
             }
             draw_rectangle_lines(start_x, start_y, rect_size, rect_size, 2.0, GRAY);
         }
     }
     let cgame = game.clone();
     let boxes = cgame.boxes();
-    for (index, b) in boxes.iter().enumerate() {
+    for (index, _) in boxes.iter().enumerate() {
         let x = (index % boxes.shape()[1]) as f32 * 3.0;
         let y = (index / boxes.shape()[1]) as f32 * 3.0;
-        let (start_x, start_y) = (x_pad + s_padding + (x * rect_size), y_pad + s_padding + (y * rect_size));
-        draw_rectangle_lines(start_x, start_y, rect_size * 3.0, rect_size * 3.0, 2.0, WHITE);
+        let (start_x, start_y) = (
+            x_pad + s_padding + (x * rect_size),
+            y_pad + s_padding + (y * rect_size),
+        );
+        draw_rectangle_lines(
+            start_x,
+            start_y,
+            rect_size * 3.0,
+            rect_size * 3.0,
+            2.0,
+            WHITE,
+        );
     }
     if let Some((sx, sy)) = &mut game.selected_cell {
         if let Some(key) = get_last_key_pressed() {
@@ -223,62 +270,53 @@ fn draw_sudoku(game: &mut SudokuGame) {
                 KeyCode::Up | KeyCode::W => {
                     if is_key_down(KeyCode::LeftShift) {
                         if *sy < 3 {
-                            *sy = 6 + *sy;
+                            *sy += 6;
                         } else {
                             *sy -= 3;
                         }
+                    } else if *sy == 0 {
+                        *sy = 8;
                     } else {
-                        if *sy == 0 {
-                            *sy = 8;
-                        } else {
-                            *sy -= 1;
-                        }
+                        *sy -= 1;
                     }
                 }
                 KeyCode::Down | KeyCode::S => {
                     if is_key_down(KeyCode::LeftShift) {
                         if *sy > 5 {
-                            *sy = *sy - 6;
+                            *sy -= 6;
                         } else {
                             *sy += 3;
                         }
+                    } else if *sy == 8 {
+                        *sy = 0;
                     } else {
-                        if *sy == 8 {
-                            *sy = 0;
-                        } else {
-                            *sy += 1;
-                        }
+                        *sy += 1;
                     }
                 }
                 KeyCode::Right | KeyCode::D => {
                     if is_key_down(KeyCode::LeftShift) {
                         if *sx > 5 {
-                            *sx = *sx - 6;
+                            *sx -= 6;
                         } else {
                             *sx += 3;
                         }
+                    } else if *sx == 8 {
+                        *sx = 0;
                     } else {
-                        if *sx == 8 {
-                            *sx = 0;
-                        } else {
-                            *sx += 1;
-                        }
+                        *sx += 1;
                     }
-                    
                 }
                 KeyCode::Left | KeyCode::A => {
                     if is_key_down(KeyCode::LeftShift) {
                         if *sx < 3 {
-                            *sx = 6 + *sx;
+                            *sx += *sx;
                         } else {
                             *sx -= 3;
                         }
+                    } else if *sx == 0 {
+                        *sx = 8;
                     } else {
-                        if *sx == 0 {
-                            *sx = 8;
-                        } else {
-                            *sx -= 1;
-                        }
+                        *sx -= 1;
                     }
                 }
                 KeyCode::Tab => {
@@ -288,8 +326,6 @@ fn draw_sudoku(game: &mut SudokuGame) {
             }
         }
     }
-    
-
 }
 
 #[macroquad::main("Sudoku")]
