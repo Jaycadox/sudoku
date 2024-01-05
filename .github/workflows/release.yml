@@ -21,7 +21,8 @@ jobs:
 
     - name: Build for Linux
       run: cargo build --release
-
+    - name: Rename file
+      run: mv target/release/sudoku target/release/sudoku-linux
     - name: Archive Linux artifacts
       uses: actions/upload-artifact@v2
       with:
@@ -42,7 +43,8 @@ jobs:
 
     - name: Build for macOS
       run: cargo build --release
-
+    - name: Rename file
+      run: mv target/release/sudoku target/release/sudoku-macos
     - name: Archive macOS artifacts
       uses: actions/upload-artifact@v2
       with:
@@ -63,7 +65,8 @@ jobs:
 
     - name: Build for Windows
       run: cargo build --release
-
+    - name: Rename file
+      run: ren target/release/sudoku.exe target/release/sudoku-win.exe
     - name: Archive Windows artifacts
       uses: actions/upload-artifact@v2
       with:
