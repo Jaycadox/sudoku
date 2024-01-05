@@ -47,6 +47,7 @@ pub fn solve(game: &SudokuGame) -> Option<SudokuGame> {
     let pool = Arc::new(Mutex::new(ThreadPool::new(num_cpus::get())));
     let mut game = game.clone();
 
+    solve_basic_inner(&mut game, 0);
     let g = solve_inner(&mut game, 0, pool, 0);
     if g.is_some() {
         let end = std::time::Instant::now();
@@ -54,6 +55,120 @@ pub fn solve(game: &SudokuGame) -> Option<SudokuGame> {
         debug!("solver :: took {}s", time.as_secs_f64());
     }
     g
+}
+
+fn get_cells_in_box(game: &SudokuGame, box_pos: (u32, u32)) -> Vec<u32> {
+    let size = game.cells.shape()[1];
+    let (start_x, start_y) = (box_pos.0 * 3, box_pos.1 * 3);
+
+    let mut cells = Vec::with_capacity(9);
+
+    for inner_box_x in 0..3 {
+        for inner_box_y in 0..3 {
+            let idx = SudokuGame::xy_pos_to_idx(
+                start_x + inner_box_x,
+                start_y + inner_box_y,
+                size as u32,
+            );
+            cells.push(idx);
+        }
+    }
+
+    cells
+}
+
+fn get_cells_in_col(game: &SudokuGame, col: u32) -> Vec<u32> {
+    let size = game.cells.shape()[1];
+    let mut cells = Vec::with_capacity(9);
+
+    let mut idx = col;
+    cells.push(idx);
+    for _col in 0..size - 1 {
+        idx += size as u32;
+        cells.push(idx);
+    }
+
+    cells
+}
+
+fn get_cells_in_row(game: &SudokuGame, row: u32) -> Vec<u32> {
+    let size = game.cells.shape()[1];
+    let mut cells = Vec::with_capacity(9);
+
+    let mut idx = row * size as u32;
+    cells.push(idx);
+    for _row in 0..size - 1 {
+        idx += 1;
+        cells.push(idx);
+    }
+
+    cells
+}
+
+// Algorithm to deduce certain tiles, a lot faster than solve inner but it can't
+// solve on its own, should speed up the backtrace algorithm
+fn solve_basic_inner(game: &mut SudokuGame, depth: usize) {
+    const APPLY_ON_ROWS_AND_COLS: bool = false; // seems to decrease performance
+
+    if depth > 1000 {
+        eprintln!("solve basic inner stuck in recursion");
+        return;
+    }
+
+    fn run_solve_stage(
+        num: u8,
+        game: &mut SudokuGame,
+        cell_group: Vec<u32>,
+        invalid_tiles: &[u32],
+    ) -> bool {
+        let size = game.cells.shape()[1];
+        let cell_group = cell_group
+            .iter()
+            .filter(|x| {
+                !invalid_tiles.contains(x) && {
+                    let (sx, sy) = SudokuGame::idx_pos_to_xy(**x, size as u32);
+                    game.cells[(sy as usize, sx as usize)] == 0
+                }
+            })
+            .collect::<Vec<_>>();
+        if cell_group.len() == 1 {
+            let (sx, sy) = SudokuGame::idx_pos_to_xy(*cell_group[0], size as u32);
+            game.cells[(sy as usize, sx as usize)] = num;
+            true
+        } else {
+            false
+        }
+    }
+
+    let mut made_change = false;
+    for num in 1..=9 {
+        let invalid_tiles = game.get_all_cells_which_see_number(num);
+        for box_x in 0..3 {
+            for box_y in 0..3 {
+                let cells_in_box = get_cells_in_box(game, (box_x, box_y));
+                if run_solve_stage(num, game, cells_in_box, &invalid_tiles) {
+                    made_change = true;
+                }
+            }
+        }
+
+        if APPLY_ON_ROWS_AND_COLS {
+            for col_or_row in 0..9 {
+                let cells_in_row = get_cells_in_row(game, col_or_row);
+                if run_solve_stage(num, game, cells_in_row, &invalid_tiles) {
+                    made_change = true;
+                }
+
+                let cells_in_col = get_cells_in_col(game, col_or_row);
+                if run_solve_stage(num, game, cells_in_col, &invalid_tiles) {
+                    made_change = true;
+                }
+            }
+        }
+    }
+    if made_change {
+        solve_basic_inner(game, depth + 1);
+    }
 }
 
 fn solve_inner(

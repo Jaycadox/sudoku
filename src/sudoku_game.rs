@@ -9,7 +9,7 @@ pub struct SudokuGame {
     pub cells: Array2<u8>,
     pub unradified: Vec<u8>,
     pub selected_cell: Option<(u32, u32)>,
-    solve_task: Option<SolveTask>,
+    pub solve_task: Option<SolveTask>,
 }
 
 impl Clone for SudokuGame {
@@ -97,9 +97,14 @@ impl SudokuGame {
     }
 
     pub fn get_cells_which_see_number_at_pos(&self, cell_pos: (u32, u32)) -> Vec<u32> {
-        let mut highlight_cells = Vec::with_capacity(21);
         let (sx, sy) = cell_pos;
         let current_selected = self.cells[(sy as usize, sx as usize)];
+        self.get_all_cells_which_see_number(current_selected)
+    }
+
+    pub fn get_all_cells_which_see_number(&self, number: u8) -> Vec<u32> {
+        let mut highlight_cells = Vec::with_capacity(21);
+        let current_selected = number;
         if current_selected != 0 {
             let mut same_cells = Vec::new();
             for (i, cell) in self.cells.iter().enumerate() {
