@@ -7,18 +7,12 @@ use bit_vec::BitVec;
 use macroquad::miniquad::debug;
 use threadpool::ThreadPool;
 
-use crate::sudoku_game::SudokuGame;
-
-pub enum SolveTaskStatus {
-    Done(Box<SudokuGame>),
-    Failed,
-    Waiting,
-}
+use crate::{sudoku_game::SudokuGame, task_status::TaskStatus};
 
 pub struct SolveTask {
     _thread: JoinHandle<()>,
     rx: Receiver<Option<SudokuGame>>,
-    status: SolveTaskStatus,
+    status: TaskStatus<SudokuGame>,
 }
 
 impl SolveTask {
@@ -27,7 +21,7 @@ impl SolveTask {
         let game = game.clone();
         Self {
             rx,
-            status: SolveTaskStatus::Waiting,
+            status: TaskStatus::<SudokuGame>::Waiting,
             _thread: std::thread::spawn(move || {
                 if let Err(e) = tx.send(solve(&game)) {
                     eprintln!("solve_task :: failed to send to parent thread, the game might have already reset. {e}");
@@ -36,11 +30,11 @@ impl SolveTask {
         }
     }
 
-    pub fn get(&mut self) -> &SolveTaskStatus {
+    pub fn get(&mut self) -> &TaskStatus<SudokuGame> {
         if let Ok(result) = self.rx.try_recv() {
             self.status = match result {
-                Some(game) => SolveTaskStatus::Done(Box::new(game)),
-                None => SolveTaskStatus::Failed,
+                Some(game) => TaskStatus::<SudokuGame>::Done(Box::new(game)),
+                None => TaskStatus::<SudokuGame>::Failed,
             };
         }
 

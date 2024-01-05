@@ -4,8 +4,9 @@ use macroquad::miniquad::window::screen_size;
 use macroquad::prelude::*;
 mod sudoku_game;
 mod sudoku_solver;
+mod task_status;
 use sudoku_game::SudokuGame;
-use sudoku_solver::SolveTaskStatus;
+use task_status::{GetTask, TaskStatus};
 
 const STATUS_BAR_HEIGHT: f32 = 50.0;
 
@@ -263,7 +264,7 @@ fn draw_sudoku(game: &mut SudokuGame) {
                 *game = SudokuGame::new();
             }
             KeyCode::F1 => {
-                if let SolveTaskStatus::Done(solved_game) = game.solve_task_status() {
+                if let TaskStatus::Done(solved_game) = game.get_task_status() {
                     game.cells = solved_game.clone().cells;
                 }
             }
@@ -296,14 +297,14 @@ fn draw_status_bar(game: &mut SudokuGame) {
     let cursor_y = start_y + 37.0;
     let bounds = draw_and_measure_text("CpuSolver :: ", cursor_x, cursor_y, 50.0, WHITE);
     cursor_x += bounds.0 + 5.0;
-    match game.solve_task_status() {
-        SolveTaskStatus::Done(_) => {
-            draw_and_measure_text("done", cursor_x, cursor_y, 50.0, GREEN);
+    match game.get_task_status() {
+        TaskStatus::Done(_) => {
+            draw_and_measure_text("done  ", cursor_x, cursor_y, 50.0, GREEN);
         }
-        SolveTaskStatus::Waiting => {
-            draw_and_measure_text("...", cursor_x, cursor_y, 50.0, YELLOW);
+        TaskStatus::Waiting => {
+            draw_and_measure_text("...   ", cursor_x, cursor_y, 50.0, YELLOW);
         }
-        SolveTaskStatus::Failed => {
+        TaskStatus::Failed => {
             draw_and_measure_text("failed", cursor_x, cursor_y, 50.0, RED);
         }
     }

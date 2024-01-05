@@ -1,6 +1,9 @@
 use ndarray::{s, Array2, ArrayView, ArrayView2, Axis, Ix1};
 
-use crate::sudoku_solver::{SolveTask, SolveTaskStatus};
+use crate::{
+    sudoku_solver::SolveTask,
+    task_status::{GetTask, TaskStatus},
+};
 
 pub struct SudokuGame {
     pub cells: Array2<u8>,
@@ -24,7 +27,7 @@ impl SudokuGame {
     pub fn new() -> Self {
         let mut cells = Array2::zeros((9, 9));
         let inp =
-            "2.3.8....8..7...........1...6.5.7...4......3....1............82.5....6...1.......";
+            "4.....8.5.3..........7......2.....6.....8.4......1.......6.3.7.5..2.....1.4......";
         let inp = inp.replace('.', "0");
         let mut unradified = Vec::new();
         for (i, cell) in cells.iter_mut().enumerate() {
@@ -54,14 +57,6 @@ impl SudokuGame {
             }
             println!();
         }
-    }
-
-    pub fn solve_task_status(&mut self) -> &SolveTaskStatus {
-        // in future, maybe return Failed if solve task does not exist
-        self.solve_task
-            .as_mut()
-            .expect("solve task should always be created")
-            .get()
     }
 
     #[inline(always)]
@@ -157,5 +152,15 @@ impl SudokuGame {
             })
             .collect::<Vec<_>>();
         Array2::from_shape_vec((3, 3), boxes).expect("bad vector shape")
+    }
+}
+
+impl GetTask<SudokuGame> for SudokuGame {
+    fn get_task_status(&mut self) -> &TaskStatus<Self> {
+        // in future, maybe return Failed if solve task does not exist
+        self.solve_task
+            .as_mut()
+            .expect("solve task should always be created")
+            .get()
     }
 }
