@@ -101,5 +101,7 @@ jobs:
       uses: softprops/action-gh-release@v1
       with:
         tag_name: ${{ github.run_number }}
-        files: ./sudoku-*
-        token: ${{ secrets.GITHUB_TOKEN }}
+        files: |
+          ./sudoku-win.exe
+          ./sudoku-macos
+          ./sudoku-linux
