@@ -90,10 +90,43 @@ fn draw_sudoku(game: &mut SudokuGame, drawing: &DrawingSettings) {
                 );
             }
 
+            let key = get_last_key_pressed().and_then(|key| match key {
+                KeyCode::Key1 => Some(1),
+                KeyCode::Key2 => Some(2),
+                KeyCode::Key3 => Some(3),
+                KeyCode::Key4 => Some(4),
+                KeyCode::Key5 => Some(5),
+                KeyCode::Key6 => Some(6),
+                KeyCode::Key7 => Some(7),
+                KeyCode::Key8 => Some(8),
+                KeyCode::Key9 => Some(9),
+                KeyCode::Backspace | KeyCode::Key0 | KeyCode::Delete => Some(0),
+                KeyCode::Space => Some(0xFF),
+                _ => None,
+            });
+
             if let Some((mx, my)) = mouse_pos {
                 if x == mx as f32 && y == my as f32 {
                     draw_rectangle(start_x, start_y, rect_size, rect_size, DARKGRAY);
-                    if is_mouse_button_pressed(MouseButton::Left) {
+
+                    let mut change_selected_to_cursor = false;
+
+                    if let Some(value) = key {
+                        if let Some((sx, sy)) = game.selected_cell {
+                            let cell_value = game.cells[(sy as usize, sx as usize)];
+                            if cell_value != 0 && value != 0 {
+                                change_selected_to_cursor = true;
+                            }
+
+                            if cell_value == 0 && value == 0 {
+                                change_selected_to_cursor = true;
+                            }
+                        } else {
+                            change_selected_to_cursor = true;
+                        }
+                    }
+
+                    if is_mouse_button_pressed(MouseButton::Left) || change_selected_to_cursor {
                         game.selected_cell = Some((mx, my));
                     }
                 }
@@ -109,74 +142,59 @@ fn draw_sudoku(game: &mut SudokuGame, drawing: &DrawingSettings) {
                         Color::new(1.00, 1.00, 1.00, 0.35),
                     );
                     if unradified {
-                        if let Some(key) = get_last_key_pressed() {
-                            if let Some(mut value) = match key {
-                                KeyCode::Key1 => Some(1),
-                                KeyCode::Key2 => Some(2),
-                                KeyCode::Key3 => Some(3),
-                                KeyCode::Key4 => Some(4),
-                                KeyCode::Key5 => Some(5),
-                                KeyCode::Key6 => Some(6),
-                                KeyCode::Key7 => Some(7),
-                                KeyCode::Key8 => Some(8),
-                                KeyCode::Key9 => Some(9),
-                                KeyCode::Backspace | KeyCode::Key0 | KeyCode::Delete => Some(0),
-                                KeyCode::Space => Some(0xFF),
-                                _ => None,
-                            } {
-                                if value == 0xFF && *cell == 0 {
-                                    // Auto value
-                                    let mut nums = HashSet::new();
-                                    value = 0;
-                                    {
-                                        // By box
-                                        let box_cord = (x as u32 / 3, y as u32 / 3);
-                                        let box_id = box_cord.1 * 3 + box_cord.0;
-                                        if let Some(b) = game.boxes().iter().nth(box_id as usize) {
-                                            for num in b {
-                                                if *num != 0 {
-                                                    nums.insert(*num);
-                                                }
-                                            }
-                                        }
-                                    }
-
-                                    {
-                                        // By row
-                                        if let Some(b) = game.rows().get(y as usize) {
-                                            for num in b {
-                                                if *num != 0 {
-                                                    nums.insert(*num);
-                                                }
-                                            }
-                                        }
-                                    }
-
-                                    {
-                                        // By col
-                                        if let Some(b) = game.cols().get(x as usize) {
-                                            for num in b {
-                                                if *num != 0 {
-                                                    nums.insert(*num);
-                                                }
-                                            }
-                                        }
-                                    }
-
-                                    if nums.len() == 8 {
-                                        for i in 1..=9 {
-                                            if !nums.contains(&i) {
-                                                value = i;
-                                                break;
+                        if let Some(mut value) = key {
+                            if value == 0xFF && *cell == 0 {
+                                // Auto value
+                                let mut nums = HashSet::new();
+                                value = 0;
+                                {
+                                    // By box
+                                    let box_cord = (x as u32 / 3, y as u32 / 3);
+                                    let box_id = box_cord.1 * 3 + box_cord.0;
+                                    if let Some(b) = game.boxes().iter().nth(box_id as usize) {
+                                        for num in b {
+                                            if *num != 0 {
+                                                nums.insert(*num);
                                             }
                                         }
                                     }
                                 }
 
-                                if value == 0 || game.cells[(y as usize, x as usize)] == 0 {
-                                    game.cells[(y as usize, x as usize)] = value;
-                                    // no idea why it needs to be this way
+                                {
+                                    // By row
+                                    if let Some(b) = game.rows().get(y as usize) {
+                                        for num in b {
+                                            if *num != 0 {
+                                                nums.insert(*num);
+                                            }
+                                        }
+                                    }
                                 }
+
+                                {
+                                    // By col
+                                    if let Some(b) = game.cols().get(x as usize) {
+                                        for num in b {
+                                            if *num != 0 {
+                                                nums.insert(*num);
+                                            }
+                                        }
+                                    }
+                                }
+
+                                if nums.len() == 8 {
+                                    for i in 1..=9 {
+                                        if !nums.contains(&i) {
+                                            value = i;
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+
+                            if value == 0 || game.cells[(y as usize, x as usize)] == 0 {
+                                game.cells[(y as usize, x as usize)] = value;
+                                // no idea why it needs to be this way
                             }
                         }
                     }
