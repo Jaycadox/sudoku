@@ -103,7 +103,6 @@ fn draw_sudoku(game: &mut SudokuGame, drawing: &DrawingSettings) {
         }
 
         if is_mouse_button_pressed(MouseButton::Left) || change_selected_to_cursor {
-            println!("changing it");
             game.selected_cell = Some((mx, my));
         }
     }
