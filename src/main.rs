@@ -8,7 +8,21 @@ mod task_status;
 use sudoku_game::SudokuGame;
 use task_status::{GetTask, TaskStatus};
 
-const STATUS_BAR_HEIGHT: f32 = 30.0;
+const STATUS_BAR_PERCENTAGE: f32 = 0.03;
+const NORMAL_LINE_PERCENTAGE: f32 = 0.001;
+const BOX_LINE_PERCENTAGE: f32 = 0.004;
+
+fn get_status_bar_height() -> f32 {
+    screen_height() * STATUS_BAR_PERCENTAGE
+}
+
+fn get_normal_line_width() -> f32 {
+    (screen_height() * NORMAL_LINE_PERCENTAGE).max(2.0) as u32 as f32
+}
+
+fn get_box_line_width() -> f32 {
+    (screen_height() * BOX_LINE_PERCENTAGE).max(3.0) as u32 as f32
+}
 
 struct DrawingSettings {
     font: Font,
@@ -24,7 +38,7 @@ impl Default for DrawingSettings {
 
 fn draw_sudoku(game: &mut SudokuGame, drawing: &DrawingSettings) {
     let (mut width, mut height) = screen_size();
-    height -= STATUS_BAR_HEIGHT;
+    height -= get_status_bar_height();
     let padding = 30.0;
     let s_padding = padding / 2.0;
     width -= padding; // padding
@@ -81,7 +95,6 @@ fn draw_sudoku(game: &mut SudokuGame, drawing: &DrawingSettings) {
                     draw_rectangle(start_x, start_y, rect_size, rect_size, DARKGRAY);
                     if is_mouse_button_pressed(MouseButton::Left) {
                         game.selected_cell = Some((mx, my));
-                        println!("clicked me");
                     }
                 }
             }
@@ -153,7 +166,6 @@ fn draw_sudoku(game: &mut SudokuGame, drawing: &DrawingSettings) {
                                     if nums.len() == 8 {
                                         for i in 1..=9 {
                                             if !nums.contains(&i) {
-                                                println!("auto found");
                                                 value = i;
                                                 break;
                                             }
@@ -188,7 +200,14 @@ fn draw_sudoku(game: &mut SudokuGame, drawing: &DrawingSettings) {
                     text_col,
                 );
             }
-            draw_rectangle_lines(start_x, start_y, rect_size, rect_size, 2.0, GRAY);
+            draw_rectangle_lines(
+                start_x,
+                start_y,
+                rect_size,
+                rect_size,
+                get_normal_line_width(),
+                GRAY,
+            );
         }
     }
     let cgame = game.clone();
@@ -205,7 +224,7 @@ fn draw_sudoku(game: &mut SudokuGame, drawing: &DrawingSettings) {
             start_y,
             rect_size * 3.0,
             rect_size * 3.0,
-            5.0,
+            get_box_line_width(),
             WHITE,
         );
     }
@@ -257,7 +276,7 @@ fn draw_sudoku(game: &mut SudokuGame, drawing: &DrawingSettings) {
                 KeyCode::Left | KeyCode::A => {
                     if is_key_down(KeyCode::LeftShift) {
                         if *sx < 3 {
-                            *sx += *sx;
+                            *sx += 6;
                         } else {
                             *sx -= 3;
                         }
@@ -308,9 +327,10 @@ fn draw_and_measure_text(
 
 fn draw_status_bar(game: &mut SudokuGame, drawing: &DrawingSettings) {
     let (width, height) = screen_size();
+    let status_bar_height = get_status_bar_height();
 
-    let (start_x, start_y) = (0.0, height - STATUS_BAR_HEIGHT);
-    let (bar_width, bar_height) = (width, STATUS_BAR_HEIGHT);
+    let (start_x, start_y) = (0.0, height - status_bar_height);
+    let (bar_width, bar_height) = (width, status_bar_height);
 
     draw_rectangle(
         start_x,
@@ -322,7 +342,7 @@ fn draw_status_bar(game: &mut SudokuGame, drawing: &DrawingSettings) {
 
     let mut cursor_x = 20.0;
 
-    let font_size = STATUS_BAR_HEIGHT * 0.9;
+    let font_size = status_bar_height * 0.9;
     let cursor_y = start_y + (font_size / 1.25);
 
     let bounds = draw_and_measure_text(
@@ -347,7 +367,15 @@ fn draw_status_bar(game: &mut SudokuGame, drawing: &DrawingSettings) {
     }
 }
 
-#[macroquad::main("Sudoku")]
+fn window_conf() -> Conf {
+    Conf {
+        window_title: "Sudoku".to_owned(),
+        sample_count: 4,
+        ..Default::default()
+    }
+}
+
+#[macroquad::main(window_conf)]
 async fn main() {
     let drawing = DrawingSettings::default();
     let mut game = SudokuGame::new();
