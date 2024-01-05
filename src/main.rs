@@ -36,39 +36,10 @@ fn draw_sudoku(game: &mut SudokuGame) {
         ));
     }
 
-    let mut highlight_cells = Vec::new();
-    if let Some((sx, sy)) = game.selected_cell {
-        let current_selected = game.cells[(sy as usize, sx as usize)];
-        if current_selected != 0 {
-            let mut same_cells = Vec::new();
-            for (i, cell) in game.clone().cells.iter().enumerate() {
-                if *cell == current_selected {
-                    let sx = i % game.cells.shape()[1];
-                    let sy = i / game.cells.shape()[1];
-                    let box_coord = (sx / 3, sy / 3);
-                    for bx in 0..3 {
-                        for by in 0..3 {
-                            let bx = box_coord.0 * 3 + bx;
-                            let by = box_coord.1 * 3 + by;
-                            highlight_cells.push(by as u32 * 9 + bx as u32);
-                        }
-                    }
-                    same_cells.push(i as u32);
-                }
-            }
-            for (i, _) in game.cells.iter().enumerate() {
-                let rx = i % game.cells.shape()[1];
-                let ry = i / game.cells.shape()[1];
-                for scell in &same_cells {
-                    let sx = *scell as usize % game.cells.shape()[1];
-                    let sy = *scell as usize / game.cells.shape()[1];
-                    if rx == sx || ry == sy {
-                        highlight_cells.push(i as u32);
-                    }
-                }
-            }
-        }
-    }
+    let highlight_cells = match game.selected_cell {
+        Some(pos) => game.get_cells_which_see_number_at_pos(pos),
+        _ => vec![],
+    };
 
     for (y, row) in game.clone().rows().iter().enumerate() {
         let y = y as f32;
