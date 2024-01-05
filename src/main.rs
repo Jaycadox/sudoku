@@ -51,8 +51,11 @@ impl SudokuGame {
     }
 }
 
+const STATUS_BAR_HEIGHT: f32 = 50.0;
+
 fn draw_sudoku(game: &mut SudokuGame) {
     let (mut width, mut height) = screen_size();
+    height -= STATUS_BAR_HEIGHT;
     let padding = 30.0;
     let s_padding = padding / 2.0;
     width -= padding; // padding
@@ -328,6 +331,21 @@ fn draw_sudoku(game: &mut SudokuGame) {
     }
 }
 
+fn draw_status_bar(game: &mut SudokuGame) {
+    let (mut width, mut height) = screen_size();
+
+    let (start_x, start_y) = (0.0, height - STATUS_BAR_HEIGHT);
+    let (bar_width, bar_height) = (width, STATUS_BAR_HEIGHT);
+
+    draw_rectangle(
+        start_x,
+        start_y,
+        bar_width,
+        bar_height,
+        Color::from_rgba(20, 20, 20, 255),
+    );
+}
+
 #[macroquad::main("Sudoku")]
 async fn main() {
     let mut game = SudokuGame::new();
@@ -340,6 +358,7 @@ async fn main() {
         }
         clear_background(BLACK);
         draw_sudoku(&mut game);
+        draw_status_bar(&mut game);
         next_frame().await;
         std::thread::sleep(std::time::Duration::from_millis(8));
     }
