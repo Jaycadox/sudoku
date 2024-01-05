@@ -69,6 +69,44 @@ fn draw_sudoku(game: &mut SudokuGame, drawing: &DrawingSettings) {
         _ => vec![],
     };
 
+    let key = get_last_key_pressed().and_then(|key| match key {
+        KeyCode::Key1 => Some(1),
+        KeyCode::Key2 => Some(2),
+        KeyCode::Key3 => Some(3),
+        KeyCode::Key4 => Some(4),
+        KeyCode::Key5 => Some(5),
+        KeyCode::Key6 => Some(6),
+        KeyCode::Key7 => Some(7),
+        KeyCode::Key8 => Some(8),
+        KeyCode::Key9 => Some(9),
+        KeyCode::Backspace | KeyCode::Key0 | KeyCode::Delete => Some(0),
+        KeyCode::Space => Some(0xFF),
+        _ => None,
+    });
+
+    if let Some((mx, my)) = mouse_pos {
+        let mut change_selected_to_cursor = false;
+
+        if let Some(value) = key {
+            if let Some((sx, sy)) = game.selected_cell {
+                let cell_value = game.cells[(sy as usize, sx as usize)];
+                if cell_value != 0 && value != 0 {
+                    change_selected_to_cursor = true;
+                }
+
+                if cell_value == 0 && value == 0 {
+                    change_selected_to_cursor = true;
+                }
+            } else {
+                change_selected_to_cursor = true;
+            }
+        }
+
+        if is_mouse_button_pressed(MouseButton::Left) || change_selected_to_cursor {
+            println!("changing it");
+            game.selected_cell = Some((mx, my));
+        }
+    }
     for (y, row) in game.clone().rows().iter().enumerate() {
         let y = y as f32;
         for (x, cell) in row.iter().enumerate() {
@@ -90,45 +128,9 @@ fn draw_sudoku(game: &mut SudokuGame, drawing: &DrawingSettings) {
                 );
             }
 
-            let key = get_last_key_pressed().and_then(|key| match key {
-                KeyCode::Key1 => Some(1),
-                KeyCode::Key2 => Some(2),
-                KeyCode::Key3 => Some(3),
-                KeyCode::Key4 => Some(4),
-                KeyCode::Key5 => Some(5),
-                KeyCode::Key6 => Some(6),
-                KeyCode::Key7 => Some(7),
-                KeyCode::Key8 => Some(8),
-                KeyCode::Key9 => Some(9),
-                KeyCode::Backspace | KeyCode::Key0 | KeyCode::Delete => Some(0),
-                KeyCode::Space => Some(0xFF),
-                _ => None,
-            });
-
             if let Some((mx, my)) = mouse_pos {
                 if x == mx as f32 && y == my as f32 {
                     draw_rectangle(start_x, start_y, rect_size, rect_size, DARKGRAY);
-
-                    let mut change_selected_to_cursor = false;
-
-                    if let Some(value) = key {
-                        if let Some((sx, sy)) = game.selected_cell {
-                            let cell_value = game.cells[(sy as usize, sx as usize)];
-                            if cell_value != 0 && value != 0 {
-                                change_selected_to_cursor = true;
-                            }
-
-                            if cell_value == 0 && value == 0 {
-                                change_selected_to_cursor = true;
-                            }
-                        } else {
-                            change_selected_to_cursor = true;
-                        }
-                    }
-
-                    if is_mouse_button_pressed(MouseButton::Left) || change_selected_to_cursor {
-                        game.selected_cell = Some((mx, my));
-                    }
                 }
             }
 
@@ -204,7 +206,17 @@ fn draw_sudoku(game: &mut SudokuGame, drawing: &DrawingSettings) {
             if *cell != 0 {
                 let number_size = measure_text(&format!("{cell}"), None, rect_size as u16, 1.0);
                 let text_col = if unradified {
-                    Color::new(0.60, 0.60, 1.00, 1.00)
+                    if let TaskStatus::Done(solved) = game.get_task_status() {
+                        let solved_cell = solved.cells[(y as usize, x as usize)];
+                        let our_cell = game.cells[(y as usize, x as usize)];
+                        if solved_cell == our_cell {
+                            Color::new(0.60, 0.60, 1.00, 1.00)
+                        } else {
+                            Color::new(1.00, 0.60, 0.60, 1.00)
+                        }
+                    } else {
+                        Color::new(0.60, 0.60, 1.00, 1.00)
+                    }
                 } else {
                     WHITE
                 };
