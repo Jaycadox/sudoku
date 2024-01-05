@@ -1,0 +1,104 @@
+name: Rust Build and Release
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Set up Rust
+      uses: actions/setup-rust@v1
+      with:
+        rust-version: stable
+
+    - name: Build for Linux
+      run: cargo build --release
+
+    - name: Archive Linux artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: linux-artifacts
+        path: target/release/
+
+  build-macos:
+    runs-on: macos-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Set up Rust
+      uses: actions/setup-rust@v1
+      with:
+        rust-version: stable
+
+    - name: Build for macOS
+      run: cargo build --release
+
+    - name: Archive macOS artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: macos-artifacts
+        path: target/release/
+
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Set up Rust
+      uses: actions/setup-rust@v1
+      with:
+        rust-version: stable
+
+    - name: Build for Windows
+      run: cargo build --release
+
+    - name: Archive Windows artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: windows-artifacts
+        path: target/release/
+
+  release:
+    needs: [build, build-macos, build-windows]
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Download Linux artifacts
+      uses: actions/download-artifact@v2
+      with:
+        name: linux-artifacts
+
+    - name: Download macOS artifacts
+      uses: actions/download-artifact@v2
+      with:
+        name: macos-artifacts
+
+    - name: Download Windows artifacts
+      uses: actions/download-artifact@v2
+      with:
+        name: windows-artifacts
+
+    - name: Create Release
+      id: create_release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          ./linux-artifacts/**
+          ./macos-artifacts/**
+          ./windows-artifacts/**
+        token: ${{ secrets.GITHUB_TOKEN }}
