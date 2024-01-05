@@ -214,7 +214,7 @@ fn draw_sudoku(game: &mut SudokuGame, drawing: &DrawingSettings) {
                             Color::new(1.00, 0.60, 0.60, 1.00)
                         }
                     } else {
-                        Color::new(0.60, 0.60, 1.00, 1.00)
+                        Color::new(0.60, 0.60, 0.60, 1.00)
                     }
                 } else {
                     WHITE
