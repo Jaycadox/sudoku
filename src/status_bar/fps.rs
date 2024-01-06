@@ -7,7 +7,7 @@ pub struct Fps;
 
 impl StatusBarItem for Fps {
     fn name(&self) -> &'static str {
-        "FPS"
+        "Fps"
     }
 
     fn activated(&mut self, _game: &mut crate::sudoku_game::SudokuGame) {}

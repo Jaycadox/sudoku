@@ -317,8 +317,8 @@ async fn main() {
 
     let mut status_bar = StatusBar::new();
     status_bar.add::<SolveTask>();
-    status_bar.add::<Fps>();
     status_bar.add::<BoardGen>();
+    status_bar.add::<Fps>();
 
     let mut game = SudokuGame::new(Some(&mut status_bar));
 

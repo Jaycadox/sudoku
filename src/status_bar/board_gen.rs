@@ -173,7 +173,7 @@ impl StatusBarItem for BoardGen {
         }
         match self.status {
             BoardGenStatus::Done => ("finished".to_string(), GREEN),
-            BoardGenStatus::Waiting(n) => (format!("{n}/81"), YELLOW),
+            BoardGenStatus::Waiting(n) => (format!("{n}/81   "), YELLOW),
             BoardGenStatus::NotStarted => ("inactive".to_string(), GRAY),
             BoardGenStatus::Failed => ("failure ".to_string(), RED),
         }
