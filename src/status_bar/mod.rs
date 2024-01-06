@@ -4,7 +4,11 @@ use macroquad::{
     shapes::{draw_line, draw_rectangle},
 };
 
-use crate::{draw_helper::*, sudoku_game::SudokuGame};
+use crate::{
+    draw_helper::*,
+    input_helper::{self, InputAction},
+    sudoku_game::SudokuGame,
+};
 
 pub mod cpu_solver;
 pub mod fps;
@@ -81,9 +85,22 @@ impl StatusBar {
         let font_size = status_bar_height * 0.9;
         let cursor_y = start_y + (font_size / 1.25);
 
+        let key = input_helper::InputAction::get_last_input();
+        if let Some(input_helper::InputAction::Function(x)) = key {
+            if let Some(item) = self.items.get_mut(x as usize - 1) {
+                item.activated(game);
+            }
+        }
+
         let item_count = self.items.len();
         for (i, item) in self.items.iter_mut().enumerate() {
             let last = i == item_count - 1;
+
+            let font_color = if InputAction::is_function_down(i as u8 + 1) {
+                Color::from_rgba(200, 200, 255, 255)
+            } else {
+                WHITE
+            };
 
             let bounds = draw_and_measure_text(
                 drawing,
@@ -91,7 +108,7 @@ impl StatusBar {
                 cursor_x,
                 cursor_y,
                 font_size,
-                WHITE,
+                font_color,
             );
             cursor_x += bounds.0;
 

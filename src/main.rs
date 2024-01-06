@@ -292,18 +292,8 @@ fn draw_sudoku(game: &mut SudokuGame, drawing: &DrawingSettings, status_bar: &mu
         }
     }
 
-    if let Some(ref key_pressed) = key {
-        match key_pressed {
-            InputAction::Reset => {
-                *game = SudokuGame::new(Some(status_bar));
-            }
-            InputAction::Function(x) => {
-                if let Some(bar_item) = status_bar.items.get_mut(*x as usize - 1) {
-                    bar_item.activated(game);
-                }
-            }
-            _ => {}
-        }
+    if let Some(InputAction::Reset) = key {
+        *game = SudokuGame::new(Some(status_bar));
     }
 }
 

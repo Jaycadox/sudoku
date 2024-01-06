@@ -1,4 +1,7 @@
-use macroquad::{input::get_last_key_pressed, miniquad::KeyCode};
+use macroquad::{
+    input::{get_last_key_pressed, is_key_down},
+    miniquad::KeyCode,
+};
 
 pub enum InputAction {
     NumberEntered(u8),
@@ -52,5 +55,23 @@ impl TryFrom<KeyCode> for InputAction {
 impl InputAction {
     pub fn get_last_input() -> Option<InputAction> {
         get_last_key_pressed().and_then(|key| InputAction::try_from(key).ok())
+    }
+
+    pub fn is_function_down(num: u8) -> bool {
+        match num {
+            1 => is_key_down(KeyCode::F1),
+            2 => is_key_down(KeyCode::F2),
+            3 => is_key_down(KeyCode::F3),
+            4 => is_key_down(KeyCode::F4),
+            5 => is_key_down(KeyCode::F5),
+            6 => is_key_down(KeyCode::F6),
+            7 => is_key_down(KeyCode::F7),
+            8 => is_key_down(KeyCode::F8),
+            9 => is_key_down(KeyCode::F9),
+            10 => is_key_down(KeyCode::F10),
+            11 => is_key_down(KeyCode::F11),
+            12 => is_key_down(KeyCode::F12),
+            _ => false,
+        }
     }
 }
