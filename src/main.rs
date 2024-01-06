@@ -1,41 +1,16 @@
 use std::collections::HashSet;
 
+use draw_helper::*;
+use macroquad::miniquad::window::screen_size;
 use macroquad::prelude::*;
-use macroquad::{miniquad::window::screen_size, text};
+mod draw_helper;
+mod status_bar;
 mod sudoku_game;
 mod sudoku_solver;
 mod task_status;
 use sudoku_game::SudokuGame;
 use sudoku_solver::SolveTask;
 use task_status::{GetTask, TaskStatus};
-
-const STATUS_BAR_PERCENTAGE: f32 = 0.03;
-const NORMAL_LINE_PERCENTAGE: f32 = 0.001;
-const BOX_LINE_PERCENTAGE: f32 = 0.004;
-
-fn get_status_bar_height() -> f32 {
-    screen_height() * STATUS_BAR_PERCENTAGE
-}
-
-fn get_normal_line_width() -> f32 {
-    (screen_height() * NORMAL_LINE_PERCENTAGE).max(2.0) as u32 as f32
-}
-
-fn get_box_line_width() -> f32 {
-    (screen_height() * BOX_LINE_PERCENTAGE).max(3.0) as u32 as f32
-}
-
-struct DrawingSettings {
-    font: Font,
-}
-
-impl Default for DrawingSettings {
-    fn default() -> Self {
-        Self {
-            font: text::load_ttf_font_from_bytes(include_bytes!("./TWN19.ttf")).unwrap(),
-        }
-    }
-}
 
 enum InputAction {
     NumberEntered(u8),
@@ -377,79 +352,6 @@ fn draw_sudoku(game: &mut SudokuGame, drawing: &DrawingSettings) {
     }
 }
 
-fn draw_and_measure_text(
-    drawing: &DrawingSettings,
-    text: &str,
-    x: f32,
-    y: f32,
-    font_size: f32,
-    color: Color,
-) -> (f32, f32) {
-    let params = TextParams {
-        font: Some(&drawing.font),
-        color,
-        font_size: font_size as u16,
-        ..Default::default()
-    };
-    draw_text_ex(text, x, y, params);
-    let dim = measure_text(text, Some(&drawing.font), font_size as u16, 1.0);
-    (dim.width, dim.height)
-}
-
-fn draw_status_bar(game: &mut SudokuGame, drawing: &DrawingSettings) {
-    let (width, height) = screen_size();
-    let status_bar_height = get_status_bar_height();
-
-    let (start_x, start_y) = (0.0, height - status_bar_height);
-    let (bar_width, bar_height) = (width, status_bar_height);
-
-    draw_rectangle(
-        start_x,
-        start_y,
-        bar_width,
-        bar_height,
-        Color::from_rgba(20, 20, 20, 255),
-    );
-
-    let mut cursor_x = 20.0;
-
-    let font_size = status_bar_height * 0.9;
-    let cursor_y = start_y + (font_size / 1.25);
-
-    let bounds = draw_and_measure_text(
-        drawing,
-        "CpuSolver :: ",
-        cursor_x,
-        cursor_y,
-        font_size,
-        WHITE,
-    );
-    cursor_x += bounds.0 + 5.0;
-    match game.get_task_status() {
-        TaskStatus::Done(_) => {
-            draw_and_measure_text(drawing, "done  ", cursor_x, cursor_y, font_size, GREEN);
-        }
-        TaskStatus::Waiting(start_time) => {
-            draw_and_measure_text(
-                drawing,
-                &format!(
-                    "{:.3}s",
-                    std::time::Instant::now()
-                        .duration_since(*start_time)
-                        .as_secs_f32()
-                ),
-                cursor_x,
-                cursor_y,
-                font_size,
-                YELLOW,
-            );
-        }
-        TaskStatus::Failed => {
-            draw_and_measure_text(drawing, "failed", cursor_x, cursor_y, font_size, RED);
-        }
-    }
-}
-
 fn window_conf() -> Conf {
     Conf {
         window_title: "Sudoku".to_owned(),
@@ -471,7 +373,7 @@ async fn main() {
         }
         clear_background(BLACK);
         draw_sudoku(&mut game, &drawing);
-        draw_status_bar(&mut game, &drawing);
+        status_bar::draw_status_bar(&mut game, &drawing);
         next_frame().await;
         std::thread::sleep(std::time::Duration::from_millis(8));
     }
