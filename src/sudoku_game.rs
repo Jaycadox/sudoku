@@ -6,6 +6,7 @@ pub struct SudokuGame {
     pub cells: Array2<u8>,
     pub unradified: Vec<u8>,
     pub selected_cell: Option<(u32, u32)>,
+    pub reset_signalled: bool,
 }
 
 impl Clone for SudokuGame {
@@ -14,6 +15,7 @@ impl Clone for SudokuGame {
             cells: self.cells.clone(),
             unradified: self.unradified.clone(),
             selected_cell: self.selected_cell,
+            reset_signalled: self.reset_signalled,
         }
     }
 }
@@ -22,7 +24,7 @@ impl SudokuGame {
     pub fn new(status_bar: Option<&mut StatusBar>) -> Self {
         let mut cells = Array2::zeros((9, 9));
         let inp =
-            "4.....8.5.3..........7......2.....6.....8.4......1.......6.3.7.5..2.....1.4......";
+            ".................................................................................";
         let inp = inp.replace('.', "0");
         let mut unradified = Vec::new();
         for (i, cell) in cells.iter_mut().enumerate() {
@@ -36,6 +38,7 @@ impl SudokuGame {
             cells,
             unradified,
             selected_cell: None,
+            reset_signalled: false,
         };
 
         if let Some(status_bar) = status_bar {
@@ -45,14 +48,42 @@ impl SudokuGame {
         game
     }
 
+    fn generate_unradified(cells: &Array2<u8>) -> Vec<u8> {
+        let mut unradified = Vec::new();
+        for (i, cell) in cells.iter().enumerate() {
+            if *cell == 0 {
+                unradified.push(i as u8);
+            }
+        }
+        unradified
+    }
+
+    pub fn reset(&mut self, mut to_state: SudokuGame) {
+        for unradified in to_state.unradified.clone() {
+            *to_state.cells.iter_mut().nth(unradified as usize).unwrap() = 0;
+        }
+
+        *self = to_state;
+        self.unradified = Self::generate_unradified(&self.cells);
+        self.reset_signalled = true;
+    }
+
     #[allow(dead_code)]
     pub fn print_board(&self) {
+        println!("{}", self.board_string());
+    }
+
+    #[allow(dead_code)]
+    pub fn board_string(&self) -> String {
+        let mut buf = String::new();
         for row in self.rows() {
             for cell in row {
-                print!("{} ", *cell);
+                buf.push_str(&format!("{} ", *cell));
             }
-            println!();
+            buf.push('\n');
         }
+
+        buf
     }
 
     #[inline(always)]

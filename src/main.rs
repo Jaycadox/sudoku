@@ -8,6 +8,7 @@ use draw_helper::*;
 use input_helper::*;
 use macroquad::miniquad::window::screen_size;
 use macroquad::prelude::*;
+use status_bar::board_gen::BoardGen;
 use status_bar::cpu_solver::*;
 use status_bar::fps::Fps;
 use status_bar::{StatusBar, StatusBarItemStatus};
@@ -15,6 +16,11 @@ use std::collections::HashSet;
 use sudoku_game::SudokuGame;
 
 fn draw_sudoku(game: &mut SudokuGame, drawing: &DrawingSettings, status_bar: &mut StatusBar) {
+    if game.reset_signalled {
+        status_bar.restart(game);
+        game.reset_signalled = false;
+    }
+
     let (mut width, mut height) = screen_size();
     height -= get_status_bar_height();
     let padding = 30.0;
@@ -293,7 +299,7 @@ fn draw_sudoku(game: &mut SudokuGame, drawing: &DrawingSettings, status_bar: &mu
     }
 
     if let Some(InputAction::Reset) = key {
-        *game = SudokuGame::new(Some(status_bar));
+        game.reset(game.clone());
     }
 }
 
@@ -312,16 +318,11 @@ async fn main() {
     let mut status_bar = StatusBar::new();
     status_bar.add::<SolveTask>();
     status_bar.add::<Fps>();
+    status_bar.add::<BoardGen>();
 
     let mut game = SudokuGame::new(Some(&mut status_bar));
 
-    let mut i = 0;
     loop {
-        i += 1;
-        if i == 100 {
-            i = 0;
-            println!("fps: {}", get_fps());
-        }
         clear_background(BLACK);
         draw_sudoku(&mut game, &drawing, &mut status_bar);
 

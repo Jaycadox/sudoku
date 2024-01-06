@@ -10,6 +10,7 @@ use crate::{
     sudoku_game::SudokuGame,
 };
 
+pub mod board_gen;
 pub mod cpu_solver;
 pub mod fps;
 

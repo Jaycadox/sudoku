@@ -4,11 +4,7 @@ use std::{
 };
 
 use bit_vec::BitVec;
-use macroquad::{
-    color::*,
-    input::is_key_down,
-    miniquad::{debug, KeyCode},
-};
+use macroquad::{color::*, input::is_key_down, miniquad::KeyCode};
 use threadpool::ThreadPool;
 
 use crate::{
@@ -104,18 +100,11 @@ impl StatusBarItem for SolveTask {
 }
 
 pub fn solve(game: &SudokuGame) -> Option<SudokuGame> {
-    let start = std::time::Instant::now();
     let pool = Arc::new(Mutex::new(ThreadPool::new(num_cpus::get())));
     let mut game = game.clone();
 
     solve_basic_inner(&mut game, 0);
-    let g = solve_inner(&mut game, 0, pool, 0);
-    if g.is_some() {
-        let end = std::time::Instant::now();
-        let time = end.duration_since(start);
-        debug!("solver :: took {}s", time.as_secs_f64());
-    }
-    g
+    solve_inner(&mut game, 0, pool, 0)
 }
 
 fn get_cells_in_box(game: &SudokuGame, box_pos: (u32, u32)) -> Vec<u32> {
@@ -307,7 +296,7 @@ fn solve_inner(
     None
 }
 
-fn get_occupied_numbers_at_cell(game: &SudokuGame, cell_pos: (u32, u32)) -> BitVec {
+pub(super) fn get_occupied_numbers_at_cell(game: &SudokuGame, cell_pos: (u32, u32)) -> BitVec {
     let mut vec = BitVec::from_elem(9, false);
     let size = game.cells.shape()[1] as u32;
 
