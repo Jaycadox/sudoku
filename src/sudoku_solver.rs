@@ -4,10 +4,18 @@ use std::{
 };
 
 use bit_vec::BitVec;
-use macroquad::miniquad::debug;
+use macroquad::{
+    color::*,
+    input::is_key_down,
+    miniquad::{debug, KeyCode},
+};
 use threadpool::ThreadPool;
 
-use crate::{sudoku_game::SudokuGame, task_status::TaskStatus};
+use crate::{
+    status_bar::{StatusBarItem, StatusBarItemOkData, StatusBarItemStatus},
+    sudoku_game::SudokuGame,
+    task_status::TaskStatus,
+};
 
 pub struct SolveTask {
     _thread: JoinHandle<()>,
@@ -39,6 +47,59 @@ impl SolveTask {
         }
 
         &self.status
+    }
+}
+
+impl Default for SolveTask {
+    fn default() -> Self {
+        let (_, rx) = std::sync::mpsc::channel();
+        Self {
+            _thread: std::thread::spawn(|| {}),
+            rx,
+            status: TaskStatus::Failed,
+        }
+    }
+}
+
+impl StatusBarItem for SolveTask {
+    fn name(&self) -> &'static str {
+        "CpuSolver"
+    }
+
+    fn update(&mut self, _game: &mut SudokuGame) -> (String, macroquad::prelude::Color) {
+        match self.get() {
+            TaskStatus::Done(_) => ("done  ".to_string(), GREEN),
+            TaskStatus::Waiting(start_time) => (
+                format!(
+                    "{:.3}s",
+                    std::time::Instant::now()
+                        .duration_since(*start_time)
+                        .as_secs_f32()
+                ),
+                YELLOW,
+            ),
+            TaskStatus::Failed => ("failed".to_string(), RED),
+        }
+    }
+
+    fn activated(&mut self, game: &mut SudokuGame) {
+        if is_key_down(KeyCode::LeftShift) {
+            self.board_init(game);
+        } else if let TaskStatus::Done(solved_game) = self.get() {
+            game.cells = solved_game.clone().cells;
+        }
+    }
+
+    fn board_init(&mut self, game: &mut SudokuGame) {
+        *self = SolveTask::new(game);
+    }
+
+    fn status(&mut self) -> StatusBarItemStatus {
+        match self.get() {
+            TaskStatus::Done(game) => StatusBarItemStatus::Ok(StatusBarItemOkData::Game(game)),
+            TaskStatus::Failed => StatusBarItemStatus::Err,
+            TaskStatus::Waiting(_) => StatusBarItemStatus::Waiting,
+        }
     }
 }
 

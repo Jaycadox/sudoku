@@ -8,9 +8,9 @@ mod status_bar;
 mod sudoku_game;
 mod sudoku_solver;
 mod task_status;
+use status_bar::{StatusBar, StatusBarItemStatus};
 use sudoku_game::SudokuGame;
 use sudoku_solver::SolveTask;
-use task_status::{GetTask, TaskStatus};
 
 enum InputAction {
     NumberEntered(u8),
@@ -61,7 +61,7 @@ impl TryFrom<KeyCode> for InputAction {
     }
 }
 
-fn draw_sudoku(game: &mut SudokuGame, drawing: &DrawingSettings) {
+fn draw_sudoku(game: &mut SudokuGame, drawing: &DrawingSettings, status_bar: &mut StatusBar) {
     let (mut width, mut height) = screen_size();
     height -= get_status_bar_height();
     let padding = 30.0;
@@ -222,16 +222,20 @@ fn draw_sudoku(game: &mut SudokuGame, drawing: &DrawingSettings) {
             if *cell != 0 {
                 let number_size = measure_text(&format!("{cell}"), None, rect_size as u16, 1.0);
                 let text_col = if unradified {
-                    if let TaskStatus::Done(solved) = game.get_task_status() {
-                        let solved_cell = solved.cells[(y as usize, x as usize)];
-                        let our_cell = game.cells[(y as usize, x as usize)];
-                        if solved_cell == our_cell {
-                            Color::new(0.60, 0.60, 1.00, 1.00)
-                        } else {
-                            Color::new(1.00, 0.60, 0.60, 1.00)
+                    let solver_value = status_bar.item_with_name("CpuSolver").map(|x| x.status());
+                    match solver_value {
+                        Some(StatusBarItemStatus::Ok(status_bar::StatusBarItemOkData::Game(
+                            solved,
+                        ))) => {
+                            let solved_cell = solved.cells[(y as usize, x as usize)];
+                            let our_cell = game.cells[(y as usize, x as usize)];
+                            if solved_cell == our_cell {
+                                Color::new(0.60, 0.60, 1.00, 1.00)
+                            } else {
+                                Color::new(1.00, 0.60, 0.60, 1.00)
+                            }
                         }
-                    } else {
-                        Color::new(0.60, 0.60, 0.60, 1.00)
+                        _ => Color::new(0.60, 0.60, 0.60, 1.00),
                     }
                 } else {
                     WHITE
@@ -338,13 +342,11 @@ fn draw_sudoku(game: &mut SudokuGame, drawing: &DrawingSettings) {
     if let Some(ref key_pressed) = key {
         match key_pressed {
             InputAction::Reset => {
-                *game = SudokuGame::new();
+                *game = SudokuGame::new(Some(status_bar));
             }
-            InputAction::Function(1) => {
-                if is_key_down(KeyCode::LeftShift) {
-                    game.solve_task = Some(SolveTask::new(game));
-                } else if let TaskStatus::Done(solved_game) = game.get_task_status() {
-                    game.cells = solved_game.clone().cells;
+            InputAction::Function(x) => {
+                if let Some(bar_item) = status_bar.items.get_mut(*x as usize - 1) {
+                    bar_item.activated(game);
                 }
             }
             _ => {}
@@ -363,7 +365,12 @@ fn window_conf() -> Conf {
 #[macroquad::main(window_conf)]
 async fn main() {
     let drawing = DrawingSettings::default();
-    let mut game = SudokuGame::new();
+
+    let mut status_bar = StatusBar::new();
+    status_bar.add::<SolveTask>();
+
+    let mut game = SudokuGame::new(Some(&mut status_bar));
+
     let mut i = 0;
     loop {
         i += 1;
@@ -372,8 +379,9 @@ async fn main() {
             println!("fps: {}", get_fps());
         }
         clear_background(BLACK);
-        draw_sudoku(&mut game, &drawing);
-        status_bar::draw_status_bar(&mut game, &drawing);
+        draw_sudoku(&mut game, &drawing, &mut status_bar);
+
+        status_bar.draw(&mut game, &drawing);
         next_frame().await;
         std::thread::sleep(std::time::Duration::from_millis(8));
     }

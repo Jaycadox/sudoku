@@ -1,15 +1,11 @@
 use ndarray::{s, Array2, ArrayView, ArrayView2, Axis, Ix1};
 
-use crate::{
-    sudoku_solver::SolveTask,
-    task_status::{GetTask, TaskStatus},
-};
+use crate::status_bar::StatusBar;
 
 pub struct SudokuGame {
     pub cells: Array2<u8>,
     pub unradified: Vec<u8>,
     pub selected_cell: Option<(u32, u32)>,
-    pub solve_task: Option<SolveTask>,
 }
 
 impl Clone for SudokuGame {
@@ -18,13 +14,12 @@ impl Clone for SudokuGame {
             cells: self.cells.clone(),
             unradified: self.unradified.clone(),
             selected_cell: self.selected_cell,
-            solve_task: None,
         }
     }
 }
 
 impl SudokuGame {
-    pub fn new() -> Self {
+    pub fn new(status_bar: Option<&mut StatusBar>) -> Self {
         let mut cells = Array2::zeros((9, 9));
         let inp =
             "4.....8.5.3..........7......2.....6.....8.4......1.......6.3.7.5..2.....1.4......";
@@ -38,13 +33,14 @@ impl SudokuGame {
             }
         }
         let mut game = SudokuGame {
-            solve_task: None,
             cells,
             unradified,
             selected_cell: None,
         };
 
-        game.solve_task = Some(SolveTask::new(&game));
+        if let Some(status_bar) = status_bar {
+            status_bar.restart(&mut game);
+        }
 
         game
     }
@@ -157,15 +153,5 @@ impl SudokuGame {
             })
             .collect::<Vec<_>>();
         Array2::from_shape_vec((3, 3), boxes).expect("bad vector shape")
-    }
-}
-
-impl GetTask<SudokuGame> for SudokuGame {
-    fn get_task_status(&mut self) -> &TaskStatus<Self> {
-        // in future, maybe return Failed if solve task does not exist
-        self.solve_task
-            .as_mut()
-            .expect("solve task should always be created")
-            .get()
     }
 }
