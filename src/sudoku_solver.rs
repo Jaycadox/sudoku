@@ -206,7 +206,14 @@ fn solve_inner(
             game.cells[(cell_pos.1 as usize, cell_pos.0 as usize)] = old;
         }
     } else {
+        enum SolveMessage {
+            Done(SudokuGame),
+            Failed,
+        }
+
         let (tx, rx) = std::sync::mpsc::channel();
+        let mut num_remaining_threads = valid_moves.len();
+
         for num in valid_moves {
             let tx = tx.clone();
             let mut game = game.clone();
@@ -216,13 +223,23 @@ fn solve_inner(
                 if let Some(game) =
                     solve_inner(&mut game, start_idx + 1, thread_pool_2.clone(), depth + 1)
                 {
-                    let _ = tx.send(game);
+                    let _ = tx.send(SolveMessage::Done(game));
+                } else {
+                    let _ = tx.send(SolveMessage::Failed);
                 }
             });
         }
 
-        if let Ok(game) = rx.recv_timeout(std::time::Duration::from_secs(10)) {
-            return Some(game);
+        while let Ok(msg) = rx.recv_timeout(std::time::Duration::from_secs(10)) {
+            num_remaining_threads -= 1;
+            match msg {
+                SolveMessage::Done(game) => return Some(game),
+                SolveMessage::Failed => {
+                    if num_remaining_threads == 0 {
+                        return None;
+                    }
+                }
+            }
         }
     }
 
