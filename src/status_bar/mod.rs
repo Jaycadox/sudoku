@@ -1,7 +1,15 @@
-use macroquad::{color::*, miniquad::window::screen_size, shapes::draw_rectangle};
+use macroquad::{
+    color::*,
+    miniquad::window::screen_size,
+    shapes::{draw_line, draw_rectangle},
+};
 
 use crate::{draw_helper::*, sudoku_game::SudokuGame};
 
+pub mod cpu_solver;
+pub mod fps;
+
+#[allow(dead_code)]
 pub enum StatusBarItemOkData<'a> {
     Game(&'a SudokuGame),
     None,
@@ -34,7 +42,7 @@ impl StatusBar {
     where
         T: StatusBarItem + Default + 'static,
     {
-        self.items.push(Box::new(T::default()));
+        self.items.push(Box::<T>::default());
     }
 
     pub fn item_with_name(&mut self, name: &str) -> Option<&mut dyn StatusBarItem> {
@@ -73,7 +81,10 @@ impl StatusBar {
         let font_size = status_bar_height * 0.9;
         let cursor_y = start_y + (font_size / 1.25);
 
-        for item in self.items.iter_mut() {
+        let item_count = self.items.len();
+        for (i, item) in self.items.iter_mut().enumerate() {
+            let last = i == item_count - 1;
+
             let bounds = draw_and_measure_text(
                 drawing,
                 &format!("{} :: ", item.name()),
@@ -82,12 +93,24 @@ impl StatusBar {
                 font_size,
                 WHITE,
             );
-            cursor_x += bounds.0 + 5.0;
+            cursor_x += bounds.0;
 
             let (text, color) = item.update(game);
             let bounds =
                 draw_and_measure_text(drawing, &text, cursor_x, cursor_y, font_size, color);
-            cursor_x += bounds.0 + 5.0;
+            cursor_x += bounds.0;
+            if !last {
+                cursor_x += 8.0;
+                draw_line(
+                    cursor_x,
+                    start_y,
+                    cursor_x,
+                    height,
+                    get_normal_line_width(),
+                    Color::from_rgba(30, 30, 30, 255),
+                );
+                cursor_x += 16.0;
+            }
         }
     }
 }

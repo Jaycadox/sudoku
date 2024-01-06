@@ -6,11 +6,11 @@ use macroquad::prelude::*;
 mod draw_helper;
 mod status_bar;
 mod sudoku_game;
-mod sudoku_solver;
 mod task_status;
+use status_bar::cpu_solver::*;
+use status_bar::fps::Fps;
 use status_bar::{StatusBar, StatusBarItemStatus};
 use sudoku_game::SudokuGame;
-use sudoku_solver::SolveTask;
 
 enum InputAction {
     NumberEntered(u8),
@@ -368,6 +368,7 @@ async fn main() {
 
     let mut status_bar = StatusBar::new();
     status_bar.add::<SolveTask>();
+    status_bar.add::<Fps>();
 
     let mut game = SudokuGame::new(Some(&mut status_bar));
 
