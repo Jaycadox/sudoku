@@ -37,6 +37,55 @@ impl Default for DrawingSettings {
     }
 }
 
+enum InputAction {
+    NumberEntered(u8),
+    Function(u8),
+    Reset,
+    Clear,
+    AutoPlay,
+    MoveUp,
+    MoveDown,
+    MoveLeft,
+    MoveRight,
+}
+
+impl TryFrom<KeyCode> for InputAction {
+    type Error = String;
+    fn try_from(value: KeyCode) -> Result<Self, Self::Error> {
+        Ok(match value {
+            KeyCode::Key1 => InputAction::NumberEntered(1),
+            KeyCode::Key2 => InputAction::NumberEntered(2),
+            KeyCode::Key3 => InputAction::NumberEntered(3),
+            KeyCode::Key4 => InputAction::NumberEntered(4),
+            KeyCode::Key5 => InputAction::NumberEntered(5),
+            KeyCode::Key6 => InputAction::NumberEntered(6),
+            KeyCode::Key7 => InputAction::NumberEntered(7),
+            KeyCode::Key8 => InputAction::NumberEntered(8),
+            KeyCode::Key9 => InputAction::NumberEntered(9),
+            KeyCode::Backspace | KeyCode::Key0 | KeyCode::Delete => InputAction::Clear,
+            KeyCode::Space => InputAction::AutoPlay,
+            KeyCode::Tab => InputAction::Reset,
+            KeyCode::F1 => InputAction::Function(1),
+            KeyCode::F2 => InputAction::Function(2),
+            KeyCode::F3 => InputAction::Function(3),
+            KeyCode::F4 => InputAction::Function(4),
+            KeyCode::F5 => InputAction::Function(5),
+            KeyCode::F6 => InputAction::Function(6),
+            KeyCode::F7 => InputAction::Function(7),
+            KeyCode::F8 => InputAction::Function(8),
+            KeyCode::F9 => InputAction::Function(9),
+            KeyCode::F10 => InputAction::Function(10),
+            KeyCode::F11 => InputAction::Function(11),
+            KeyCode::F12 => InputAction::Function(12),
+            KeyCode::W | KeyCode::Up => InputAction::MoveUp,
+            KeyCode::A | KeyCode::Left => InputAction::MoveLeft,
+            KeyCode::S | KeyCode::Down => InputAction::MoveDown,
+            KeyCode::D | KeyCode::Right => InputAction::MoveRight,
+            _ => Err("Not a recognised key".to_string())?,
+        })
+    }
+}
+
 fn draw_sudoku(game: &mut SudokuGame, drawing: &DrawingSettings) {
     let (mut width, mut height) = screen_size();
     height -= get_status_bar_height();
@@ -70,32 +119,19 @@ fn draw_sudoku(game: &mut SudokuGame, drawing: &DrawingSettings) {
         _ => vec![],
     };
 
-    let key = get_last_key_pressed().and_then(|key| match key {
-        KeyCode::Key1 => Some(1),
-        KeyCode::Key2 => Some(2),
-        KeyCode::Key3 => Some(3),
-        KeyCode::Key4 => Some(4),
-        KeyCode::Key5 => Some(5),
-        KeyCode::Key6 => Some(6),
-        KeyCode::Key7 => Some(7),
-        KeyCode::Key8 => Some(8),
-        KeyCode::Key9 => Some(9),
-        KeyCode::Backspace | KeyCode::Key0 | KeyCode::Delete => Some(0),
-        KeyCode::Space => Some(0xFF),
-        _ => None,
-    });
+    let mut key = get_last_key_pressed().and_then(|key| InputAction::try_from(key).ok());
 
     if let Some((mx, my)) = mouse_pos {
         let mut change_selected_to_cursor = false;
 
-        if let Some(value) = key {
+        if let Some(ref value) = key {
             if let Some((sx, sy)) = game.selected_cell {
                 let cell_value = game.cells[(sy as usize, sx as usize)];
-                if cell_value != 0 && value != 0 {
+                if cell_value != 0 && matches!(value, InputAction::NumberEntered(_)) {
                     change_selected_to_cursor = true;
                 }
 
-                if cell_value == 0 && value == 0 {
+                if cell_value == 0 && matches!(value, InputAction::Clear) {
                     change_selected_to_cursor = true;
                 }
             } else {
@@ -144,11 +180,11 @@ fn draw_sudoku(game: &mut SudokuGame, drawing: &DrawingSettings) {
                         Color::new(1.00, 1.00, 1.00, 0.35),
                     );
                     if unradified {
-                        if let Some(mut value) = key {
-                            if value == 0xFF && *cell == 0 {
+                        if let Some(ref mut value) = key {
+                            if matches!(value, InputAction::AutoPlay) && *cell == 0 {
                                 // Auto value
                                 let mut nums = HashSet::new();
-                                value = 0;
+                                *value = InputAction::NumberEntered(0);
                                 {
                                     // By box
                                     let box_cord = (x as u32 / 3, y as u32 / 3);
@@ -187,16 +223,21 @@ fn draw_sudoku(game: &mut SudokuGame, drawing: &DrawingSettings) {
                                 if nums.len() == 8 {
                                     for i in 1..=9 {
                                         if !nums.contains(&i) {
-                                            value = i;
+                                            *value = InputAction::NumberEntered(i);
                                             break;
                                         }
                                     }
                                 }
                             }
-
-                            if value == 0 || game.cells[(y as usize, x as usize)] == 0 {
-                                game.cells[(y as usize, x as usize)] = value;
-                                // no idea why it needs to be this way
+                            match value {
+                                InputAction::NumberEntered(_) | InputAction::Clear => {
+                                    game.cells[(y as usize, x as usize)] = match value {
+                                        InputAction::NumberEntered(num) => *num,
+                                        InputAction::Clear => 0,
+                                        _ => panic!("tried to place invalid cell input"),
+                                    };
+                                }
+                                _ => {}
                             }
                         }
                     }
@@ -259,12 +300,10 @@ fn draw_sudoku(game: &mut SudokuGame, drawing: &DrawingSettings) {
         );
     }
 
-    let last_key_pressed = get_last_key_pressed();
-
     if let Some((sx, sy)) = &mut game.selected_cell {
-        if let Some(key) = last_key_pressed {
+        if let Some(ref key) = key {
             match key {
-                KeyCode::Up | KeyCode::W => {
+                InputAction::MoveUp => {
                     if is_key_down(KeyCode::LeftShift) {
                         if *sy < 3 {
                             *sy += 6;
@@ -277,7 +316,7 @@ fn draw_sudoku(game: &mut SudokuGame, drawing: &DrawingSettings) {
                         *sy -= 1;
                     }
                 }
-                KeyCode::Down | KeyCode::S => {
+                InputAction::MoveDown => {
                     if is_key_down(KeyCode::LeftShift) {
                         if *sy > 5 {
                             *sy -= 6;
@@ -290,7 +329,7 @@ fn draw_sudoku(game: &mut SudokuGame, drawing: &DrawingSettings) {
                         *sy += 1;
                     }
                 }
-                KeyCode::Right | KeyCode::D => {
+                InputAction::MoveRight => {
                     if is_key_down(KeyCode::LeftShift) {
                         if *sx > 5 {
                             *sx -= 6;
@@ -303,7 +342,7 @@ fn draw_sudoku(game: &mut SudokuGame, drawing: &DrawingSettings) {
                         *sx += 1;
                     }
                 }
-                KeyCode::Left | KeyCode::A => {
+                InputAction::MoveLeft => {
                     if is_key_down(KeyCode::LeftShift) {
                         if *sx < 3 {
                             *sx += 6;
@@ -321,12 +360,12 @@ fn draw_sudoku(game: &mut SudokuGame, drawing: &DrawingSettings) {
         }
     }
 
-    if let Some(key_pressed) = last_key_pressed {
+    if let Some(ref key_pressed) = key {
         match key_pressed {
-            KeyCode::Tab => {
+            InputAction::Reset => {
                 *game = SudokuGame::new();
             }
-            KeyCode::F1 => {
+            InputAction::Function(1) => {
                 if is_key_down(KeyCode::LeftShift) {
                     game.solve_task = Some(SolveTask::new(game));
                 } else if let TaskStatus::Done(solved_game) = game.get_task_status() {
