@@ -8,7 +8,7 @@ use macroquad::{
 
 use crate::{
     draw_helper::*,
-    input_helper::{self, InputAction, InputActionChar, InputActionContext},
+    input_helper::{InputAction, InputActionChar, InputActionContext},
     sudoku_game::SudokuGame,
 };
 
@@ -32,6 +32,7 @@ pub enum StatusBarDisplayMode {
     Normal,
     NameOnly,
     StatusOnly,
+    None,
 }
 
 pub trait StatusBarItem {
@@ -200,20 +201,18 @@ impl StatusBar {
 
         let mut buffer = self.buffer.clone();
 
-        let key = input_helper::InputAction::get_last_input(InputActionContext::Generic);
-        if let Some(input_helper::InputAction::Function(x)) = key {
-            if let Some(item) = self.items.get_mut(x as usize - 1) {
-                let before = buffer.clone();
-                item.activated(game, &mut buffer);
-                if before == buffer {
-                    buffer.clear();
-                }
-            }
-        }
+        let mut i = 0;
+        for item in self.items.iter_mut() {
+            let display_mode = item.display_mode();
+            let display = !matches!(display_mode, StatusBarDisplayMode::None);
 
-        for (i, item) in self.items.iter_mut().enumerate() {
             let font_color =
-                if InputAction::is_function_down(i as u8 + 1, InputActionContext::Generic) {
+                if InputAction::is_function_down(i + 1, InputActionContext::Generic) && display {
+                    let before = buffer.clone();
+                    item.activated(game, &mut buffer);
+                    if before == buffer {
+                        buffer.clear();
+                    }
                     Color::from_rgba(200, 200, 255, 255)
                 } else {
                     WHITE
@@ -221,7 +220,6 @@ impl StatusBar {
 
             let (text, color) = item.update(game);
 
-            let display_mode = item.display_mode();
             if matches!(
                 display_mode,
                 StatusBarDisplayMode::Normal | StatusBarDisplayMode::NameOnly
@@ -250,16 +248,19 @@ impl StatusBar {
                 cursor_x += bounds.0;
             }
 
-            cursor_x += 16.0;
-            draw_line(
-                cursor_x,
-                start_y,
-                cursor_x,
-                height,
-                get_normal_line_width(),
-                Color::from_rgba(30, 30, 30, 255),
-            );
-            cursor_x += 16.0;
+            if display {
+                cursor_x += 16.0;
+                draw_line(
+                    cursor_x,
+                    start_y,
+                    cursor_x,
+                    height,
+                    get_normal_line_width(),
+                    Color::from_rgba(30, 30, 30, 255),
+                );
+                cursor_x += 16.0;
+                i += 1;
+            }
         }
 
         self.buffer = buffer;
