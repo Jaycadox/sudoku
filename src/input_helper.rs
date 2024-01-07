@@ -103,6 +103,14 @@ impl InputAction {
         Self::get_last_key_pressed(ctx).and_then(|key| InputAction::try_from(key).ok())
     }
 
+    pub fn is_function_pressed(num: u8, ctx: InputActionContext) -> bool {
+        let last_key_pressed = Self::get_last_input(ctx);
+        if let Some(InputAction::Function(i)) = last_key_pressed {
+            return i == num;
+        }
+        false
+    }
+
     pub fn is_function_down(num: u8, ctx: InputActionContext) -> bool {
         match num {
             1 => Self::is_key_down(KeyCode::F1, ctx),

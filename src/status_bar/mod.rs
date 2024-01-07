@@ -28,6 +28,7 @@ pub enum StatusBarItemStatus<'a> {
     Err,
 }
 
+#[allow(dead_code)]
 pub enum StatusBarDisplayMode {
     Normal,
     NameOnly,
@@ -206,13 +207,16 @@ impl StatusBar {
             let display_mode = item.display_mode();
             let display = !matches!(display_mode, StatusBarDisplayMode::None);
 
+            if display && InputAction::is_function_pressed(i + 1, InputActionContext::Generic) {
+                let before = buffer.clone();
+                item.activated(game, &mut buffer);
+                if before == buffer {
+                    buffer.clear();
+                }
+            }
+
             let font_color =
                 if InputAction::is_function_down(i + 1, InputActionContext::Generic) && display {
-                    let before = buffer.clone();
-                    item.activated(game, &mut buffer);
-                    if before == buffer {
-                        buffer.clear();
-                    }
                     Color::from_rgba(200, 200, 255, 255)
                 } else {
                     WHITE
