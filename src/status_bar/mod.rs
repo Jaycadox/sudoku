@@ -13,7 +13,7 @@ use crate::{
 };
 
 pub mod board_gen;
-pub mod cpu_solver;
+pub mod cpu_solve;
 pub mod fps;
 
 #[allow(dead_code)]

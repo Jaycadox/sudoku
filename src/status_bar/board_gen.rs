@@ -7,7 +7,7 @@ use macroquad::{
 use rand::Rng;
 
 use crate::{
-    status_bar::cpu_solver::{self, SolveTask},
+    status_bar::cpu_solve::{self, SolveTask},
     sudoku_game::SudokuGame,
     task_status::TaskStatus,
 };
@@ -81,7 +81,7 @@ impl StatusBarItem for BoardGen {
 
             let (sx, sy) =
                 SudokuGame::idx_pos_to_xy(start_idx as u32, game.cells.shape()[1] as u32);
-            let occupied = cpu_solver::get_occupied_numbers_at_cell(game, (sx, sy));
+            let occupied = cpu_solve::get_occupied_numbers_at_cell(game, (sx, sy));
 
             let mut numbers = (1..=9).collect::<Vec<_>>();
             numbers.shuffle();

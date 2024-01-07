@@ -9,7 +9,7 @@ use input_helper::*;
 use macroquad::miniquad::window::screen_size;
 use macroquad::prelude::*;
 use status_bar::board_gen::BoardGen;
-use status_bar::cpu_solver::*;
+use status_bar::cpu_solve::*;
 use status_bar::fps::Fps;
 use status_bar::{StatusBar, StatusBarItemStatus};
 use std::collections::HashSet;
@@ -181,7 +181,7 @@ fn draw_sudoku(game: &mut SudokuGame, drawing: &DrawingSettings, status_bar: &mu
             if *cell != 0 {
                 let number_size = measure_text(&format!("{cell}"), None, rect_size as u16, 1.0);
                 let text_col = if unradified {
-                    let solver_value = status_bar.item_with_name("CpuSolver").map(|x| x.status());
+                    let solver_value = status_bar.item_with_name("CpuSolve").map(|x| x.status());
                     match solver_value {
                         Some(StatusBarItemStatus::Ok(status_bar::StatusBarItemOkData::Game(
                             solved,

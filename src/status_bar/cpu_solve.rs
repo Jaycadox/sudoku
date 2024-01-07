@@ -60,7 +60,7 @@ impl Default for SolveTask {
 
 impl StatusBarItem for SolveTask {
     fn name(&self) -> &'static str {
-        "CpuSolver"
+        "CpuSolve"
     }
 
     fn update(&mut self, _game: &mut SudokuGame) -> (String, macroquad::prelude::Color) {
