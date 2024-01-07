@@ -27,6 +27,7 @@ pub enum InputAction {
     MoveRight,
     ClearBuffer,
     PasteBuffer,
+    EnterBuffer,
 }
 
 impl TryFrom<KeyCode> for InputAction {
@@ -69,6 +70,7 @@ impl TryFrom<KeyCode> for InputAction {
                     Err("Not a recognised key".to_string())?
                 }
             }
+            KeyCode::Enter => InputAction::EnterBuffer,
             _ => Err("Not a recognised key".to_string())?,
         })
     }

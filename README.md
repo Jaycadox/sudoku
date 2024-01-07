@@ -22,3 +22,4 @@ At first launch, you will be met with an empty Sudoku board and a status bar at 
 | F(x)                        | Activates status bar item of position X                           |
 | Space                       | Auto fills the selected tile with the only legal move if possible |
 | Left control + Left alt + V | Pastes into buffer                                                |
+| Enter                       | Runs the command in the buffer                                    |

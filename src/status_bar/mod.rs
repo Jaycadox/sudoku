@@ -84,6 +84,30 @@ impl StatusBar {
         whole_num_half_secs % 2 == 0
     }
 
+    fn buffer_entered(&mut self, game: &mut SudokuGame) {
+        let buffer = self.buffer.clone();
+        let mut command_words = buffer.split_whitespace();
+
+        let Some(command_name) = command_words.next() else {
+            return;
+        };
+
+        let Some(item) = self.item_with_name(command_name) else {
+            return;
+        };
+
+        let mut buffer = command_words.collect::<Vec<_>>().join(" ");
+
+        let before = buffer.clone();
+        item.activated(game, &mut buffer);
+
+        if before == buffer {
+            buffer.clear();
+        }
+
+        self.buffer = buffer;
+    }
+
     pub fn draw(&mut self, game: &mut SudokuGame, drawing: &DrawingSettings) {
         let (width, height) = screen_size();
         let status_bar_height = get_status_bar_height();
@@ -163,6 +187,7 @@ impl StatusBar {
                     ignore_next_input = true;
                 }
             }
+            Some(InputAction::EnterBuffer) => self.buffer_entered(game),
             _ => {}
         };
 
