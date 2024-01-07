@@ -159,8 +159,7 @@ impl StatusBarItem for BoardGen {
                             *game.cells.iter_mut().nth(random_tile_idx).unwrap() = og_value;
                         } else {
                             total_numbers -= 1;
-                            tx.send(BoardGenUpdate::ProgressReport(total_numbers as u8))
-                                .unwrap();
+                            let _ = tx.send(BoardGenUpdate::ProgressReport(total_numbers as u8));
 
                             previous_states.push((game.clone(), total_numbers));
 
