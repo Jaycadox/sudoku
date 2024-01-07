@@ -241,7 +241,7 @@ impl StatusBar {
                 }
             }
             Some(InputAction::EnterBuffer) => {
-                self.buffer_entered(game);
+                self.enter_buffer_commands(&[&self.buffer.clone()]);
             }
             _ => {}
         };

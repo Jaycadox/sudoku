@@ -50,6 +50,7 @@ impl StatusBarItem for BoardGen {
     }
 
     fn activated(&mut self, _old_game: &mut SudokuGame, buffer: &mut String) {
+        self.status = BoardGenStatus::Waiting(81);
         let num_tiles_target = match buffer.parse::<u8>() {
             Ok(val) => val,
             Err(_) => {
