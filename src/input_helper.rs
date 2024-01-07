@@ -103,20 +103,20 @@ impl InputAction {
         Self::get_last_key_pressed(ctx).and_then(|key| InputAction::try_from(key).ok())
     }
 
-    pub fn is_function_down(num: u8) -> bool {
+    pub fn is_function_down(num: u8, ctx: InputActionContext) -> bool {
         match num {
-            1 => is_key_down(KeyCode::F1),
-            2 => is_key_down(KeyCode::F2),
-            3 => is_key_down(KeyCode::F3),
-            4 => is_key_down(KeyCode::F4),
-            5 => is_key_down(KeyCode::F5),
-            6 => is_key_down(KeyCode::F6),
-            7 => is_key_down(KeyCode::F7),
-            8 => is_key_down(KeyCode::F8),
-            9 => is_key_down(KeyCode::F9),
-            10 => is_key_down(KeyCode::F10),
-            11 => is_key_down(KeyCode::F11),
-            12 => is_key_down(KeyCode::F12),
+            1 => Self::is_key_down(KeyCode::F1, ctx),
+            2 => Self::is_key_down(KeyCode::F2, ctx),
+            3 => Self::is_key_down(KeyCode::F3, ctx),
+            4 => Self::is_key_down(KeyCode::F4, ctx),
+            5 => Self::is_key_down(KeyCode::F5, ctx),
+            6 => Self::is_key_down(KeyCode::F6, ctx),
+            7 => Self::is_key_down(KeyCode::F7, ctx),
+            8 => Self::is_key_down(KeyCode::F8, ctx),
+            9 => Self::is_key_down(KeyCode::F9, ctx),
+            10 => Self::is_key_down(KeyCode::F10, ctx),
+            11 => Self::is_key_down(KeyCode::F11, ctx),
+            12 => Self::is_key_down(KeyCode::F12, ctx),
             _ => false,
         }
     }

@@ -194,11 +194,12 @@ impl StatusBar {
         }
 
         for (i, item) in self.items.iter_mut().enumerate() {
-            let font_color = if InputAction::is_function_down(i as u8 + 1) {
-                Color::from_rgba(200, 200, 255, 255)
-            } else {
-                WHITE
-            };
+            let font_color =
+                if InputAction::is_function_down(i as u8 + 1, InputActionContext::Generic) {
+                    Color::from_rgba(200, 200, 255, 255)
+                } else {
+                    WHITE
+                };
 
             let bounds = draw_and_measure_text(
                 drawing,
