@@ -267,7 +267,7 @@ impl StatusBar {
                 StatusBarDisplayMode::Normal | StatusBarDisplayMode::NameOnly
             ) {
                 let (suffix, font_color) = if let StatusBarDisplayMode::Normal = display_mode {
-                    (" :: ", font_color)
+                    (" ::", font_color)
                 } else {
                     ("", color)
                 };
