@@ -28,12 +28,21 @@ pub enum StatusBarItemStatus<'a> {
     Err,
 }
 
+pub enum StatusBarDisplayMode {
+    Normal,
+    NameOnly,
+    StatusOnly,
+}
+
 pub trait StatusBarItem {
     fn name(&self) -> &'static str;
     fn activated(&mut self, game: &mut SudokuGame, buffer: &mut String);
     fn update(&mut self, game: &mut SudokuGame) -> (String, Color);
     fn board_init(&mut self, game: &mut SudokuGame, buffer: &mut String);
     fn status(&mut self) -> StatusBarItemStatus;
+    fn display_mode(&self) -> StatusBarDisplayMode {
+        StatusBarDisplayMode::Normal
+    }
 }
 
 pub struct StatusBar {
@@ -210,20 +219,38 @@ impl StatusBar {
                     WHITE
                 };
 
-            let bounds = draw_and_measure_text(
-                drawing,
-                &format!("{} :: ", item.name()),
-                cursor_x,
-                cursor_y,
-                font_size,
-                font_color,
-            );
-            cursor_x += bounds.0;
             let (text, color) = item.update(game);
-            let bounds =
-                draw_and_measure_text(drawing, &text, cursor_x, cursor_y, font_size, color);
-            cursor_x += bounds.0;
-            cursor_x += 8.0;
+
+            let display_mode = item.display_mode();
+            if matches!(
+                display_mode,
+                StatusBarDisplayMode::Normal | StatusBarDisplayMode::NameOnly
+            ) {
+                let (suffix, font_color) = if let StatusBarDisplayMode::Normal = display_mode {
+                    (" :: ", font_color)
+                } else {
+                    ("", color)
+                };
+                let bounds = draw_and_measure_text(
+                    drawing,
+                    &format!("{}{}", item.name(), suffix),
+                    cursor_x,
+                    cursor_y,
+                    font_size,
+                    font_color,
+                );
+                cursor_x += bounds.0 + 8.0;
+            }
+            if matches!(
+                display_mode,
+                StatusBarDisplayMode::Normal | StatusBarDisplayMode::StatusOnly
+            ) {
+                let bounds =
+                    draw_and_measure_text(drawing, &text, cursor_x, cursor_y, font_size, color);
+                cursor_x += bounds.0;
+            }
+
+            cursor_x += 16.0;
             draw_line(
                 cursor_x,
                 start_y,

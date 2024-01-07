@@ -65,17 +65,17 @@ impl StatusBarItem for SolveTask {
 
     fn update(&mut self, _game: &mut SudokuGame) -> (String, macroquad::prelude::Color) {
         match self.get() {
-            TaskStatus::Done(_) => ("done  ".to_string(), GREEN),
+            TaskStatus::Done(_) => ("done".to_string(), GREEN),
             TaskStatus::Waiting(start_time) => (
                 format!(
-                    "{:.3}s",
+                    "{:.1}s",
                     std::time::Instant::now()
                         .duration_since(*start_time)
                         .as_secs_f32()
                 ),
                 YELLOW,
             ),
-            TaskStatus::Failed => ("failed".to_string(), RED),
+            TaskStatus::Failed => ("fail".to_string(), RED),
         }
     }
 
