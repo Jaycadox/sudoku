@@ -150,8 +150,15 @@ impl StatusBar {
     }
 
     pub fn enter_buffer_commands(&mut self, commands: &[&str]) {
-        self.commands_queue
-            .append(&mut commands.iter().map(|x| x.to_string()).collect());
+        self.commands_queue.append(
+            &mut commands
+                .iter()
+                .flat_map(|x| {
+                    x.lines()
+                        .flat_map(|y| y.split('&').map(|z| z.trim().to_string()).rev())
+                })
+                .collect(),
+        );
     }
 
     pub fn draw(&mut self, game: &mut SudokuGame, drawing: &DrawingSettings) {
