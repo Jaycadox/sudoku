@@ -322,6 +322,8 @@ async fn main() {
 
     let mut game = SudokuGame::new(Some(&mut status_bar));
 
+    status_bar.enter_buffer_commands(&["BoardGen 30"]);
+
     loop {
         clear_background(BLACK);
         draw_sudoku(&mut game, &drawing, &mut status_bar);

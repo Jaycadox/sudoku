@@ -205,6 +205,12 @@ impl StatusBarItem for BoardGen {
     }
 
     fn status(&mut self) -> super::StatusBarItemStatus {
-        super::StatusBarItemStatus::Ok(super::StatusBarItemOkData::None)
+        match self.status {
+            BoardGenStatus::NotStarted | BoardGenStatus::Done => {
+                super::StatusBarItemStatus::Ok(super::StatusBarItemOkData::None)
+            }
+            BoardGenStatus::Waiting(_) => super::StatusBarItemStatus::Waiting,
+            BoardGenStatus::Failed => super::StatusBarItemStatus::Err,
+        }
     }
 }
