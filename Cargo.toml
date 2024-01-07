@@ -11,6 +11,7 @@ lto = true
 codegen-units = 1
 
 [dependencies]
+arboard = "3.3.0"
 bit-vec = "0.6.3"
 macroquad = "0.4.4"
 ndarray = "0.15.6"

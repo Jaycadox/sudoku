@@ -26,6 +26,7 @@ pub enum InputAction {
     MoveLeft,
     MoveRight,
     ClearBuffer,
+    PasteBuffer,
 }
 
 impl TryFrom<KeyCode> for InputAction {
@@ -61,6 +62,13 @@ impl TryFrom<KeyCode> for InputAction {
             KeyCode::S | KeyCode::Down => InputAction::MoveDown,
             KeyCode::D | KeyCode::Right => InputAction::MoveRight,
             KeyCode::LeftControl => InputAction::ClearBuffer,
+            KeyCode::V => {
+                if is_key_down(KeyCode::LeftControl) && is_key_down(KeyCode::LeftAlt) {
+                    InputAction::PasteBuffer
+                } else {
+                    Err("Not a recognised key".to_string())?
+                }
+            }
             _ => Err("Not a recognised key".to_string())?,
         })
     }

@@ -152,19 +152,28 @@ impl StatusBar {
         self.buffer = buffer;
 
         // Now that each status bar item has been drawn, we can start to draw the buffer input
-
-        if let Some(InputAction::ClearBuffer) =
-            InputAction::get_last_input(InputActionContext::Buffer)
-        {
-            self.buffer.clear();
-        }
+        let mut ignore_next_input = false;
+        match InputAction::get_last_input(InputActionContext::Buffer) {
+            Some(InputAction::ClearBuffer) => {
+                self.buffer.clear();
+            }
+            Some(InputAction::PasteBuffer) => {
+                if let Ok(txt) = arboard::Clipboard::new().and_then(|mut cb| cb.get_text()) {
+                    self.buffer.push_str(&txt);
+                    ignore_next_input = true;
+                }
+            }
+            _ => {}
+        };
 
         let key = InputAction::get_last_input_char(InputActionContext::Buffer);
 
         match key {
             Some(InputActionChar::Char(c)) => {
                 self.time_started = Instant::now();
-                self.buffer.push(c)
+                if !ignore_next_input {
+                    self.buffer.push(c)
+                }
             }
             Some(InputActionChar::Backspace) => {
                 let _ = self.buffer.pop();
