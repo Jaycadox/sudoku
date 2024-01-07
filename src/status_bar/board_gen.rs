@@ -12,7 +12,7 @@ use crate::{
     task_status::TaskStatus,
 };
 
-use super::StatusBarItem;
+use super::{StatusBar, StatusBarItem};
 
 enum BoardGenUpdate {
     FinalResult(Option<SudokuGame>),
@@ -49,13 +49,13 @@ impl StatusBarItem for BoardGen {
         "BoardGen"
     }
 
-    fn activated(&mut self, _old_game: &mut SudokuGame, buffer: &mut String) {
+    fn activated(&mut self, _old_game: &mut SudokuGame, status_bar: &mut StatusBar) {
         self.status = BoardGenStatus::Waiting(81);
-        let num_tiles_target = match buffer.parse::<u8>() {
+        let num_tiles_target = match status_bar.buffer.parse::<u8>() {
             Ok(val) => val,
             Err(_) => {
-                if !buffer.is_empty() {
-                    *buffer = "BoardGen: failed to parse tiles target".to_string();
+                if !status_bar.buffer.is_empty() {
+                    status_bar.buffer = "BoardGen: failed to parse tiles target".to_string();
                     self.status = BoardGenStatus::Failed;
                     return;
                 }
@@ -67,7 +67,7 @@ impl StatusBarItem for BoardGen {
         let count = game.cells.iter().count();
 
         if num_tiles_target as usize >= count {
-            *buffer = format!("BoardGen: tiles target too large. max={count}");
+            status_bar.buffer = format!("BoardGen: tiles target too large. max={count}");
             self.status = BoardGenStatus::Failed;
             return;
         }
@@ -199,7 +199,7 @@ impl StatusBarItem for BoardGen {
         }
     }
 
-    fn board_init(&mut self, _game: &mut SudokuGame, _buffer: &mut String) {
+    fn board_init(&mut self, _game: &mut SudokuGame, _status_bar: &mut StatusBar) {
         let old_status = self.status.clone();
         *self = Default::default();
         self.status = old_status;

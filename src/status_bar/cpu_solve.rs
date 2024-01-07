@@ -14,6 +14,8 @@ use crate::{
     task_status::TaskStatus,
 };
 
+use super::StatusBar;
+
 pub struct SolveTask {
     _thread: JoinHandle<()>,
     rx: Receiver<Option<SudokuGame>>,
@@ -79,15 +81,15 @@ impl StatusBarItem for SolveTask {
         }
     }
 
-    fn activated(&mut self, game: &mut SudokuGame, buffer: &mut String) {
+    fn activated(&mut self, game: &mut SudokuGame, status_bar: &mut StatusBar) {
         if InputAction::is_key_down(KeyCode::LeftShift, InputActionContext::Generic) {
-            self.board_init(game, buffer);
+            self.board_init(game, status_bar);
         } else if let TaskStatus::Done(solved_game) = self.get() {
             game.cells = solved_game.clone().cells;
         }
     }
 
-    fn board_init(&mut self, game: &mut SudokuGame, _buffer: &mut String) {
+    fn board_init(&mut self, game: &mut SudokuGame, _status_bar: &mut StatusBar) {
         *self = SolveTask::new(game);
     }
 

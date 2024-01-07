@@ -12,8 +12,11 @@ use crate::{
     sudoku_game::SudokuGame,
 };
 
+use self::dummy::Dummy;
+
 pub mod board_gen;
 pub mod cpu_solve;
+mod dummy;
 pub mod fps;
 
 #[allow(dead_code)]
@@ -38,9 +41,9 @@ pub enum StatusBarDisplayMode {
 
 pub trait StatusBarItem {
     fn name(&self) -> &'static str;
-    fn activated(&mut self, game: &mut SudokuGame, buffer: &mut String);
+    fn activated(&mut self, game: &mut SudokuGame, status_bar: &mut StatusBar);
     fn update(&mut self, game: &mut SudokuGame) -> (String, Color);
-    fn board_init(&mut self, game: &mut SudokuGame, buffer: &mut String);
+    fn board_init(&mut self, game: &mut SudokuGame, status_bar: &mut StatusBar);
     fn status(&mut self) -> StatusBarItemStatus;
     fn display_mode(&self) -> StatusBarDisplayMode {
         StatusBarDisplayMode::Normal
@@ -49,7 +52,7 @@ pub trait StatusBarItem {
 
 pub struct StatusBar {
     time_started: Instant,
-    pub items: Vec<Box<dyn StatusBarItem>>,
+    items: Vec<Box<dyn StatusBarItem>>,
     pub buffer: String,
     commands_queue: Vec<String>,
     current_command: Option<String>,
@@ -75,7 +78,7 @@ impl StatusBar {
 
     pub fn item_with_name(&mut self, name: &str) -> Option<&mut dyn StatusBarItem> {
         for item in self.items.iter_mut() {
-            if item.name() == name {
+            if item.name().to_lowercase() == name.to_lowercase() {
                 return Some(item.as_mut());
             }
         }
@@ -83,10 +86,32 @@ impl StatusBar {
         None
     }
 
+    pub fn index_with_name(&self, name: &str) -> Option<usize> {
+        for (i, item) in self.items.iter().enumerate() {
+            if item.name().to_lowercase() == name.to_lowercase() {
+                return Some(i);
+            }
+        }
+
+        None
+    }
+
     pub fn restart(&mut self, game: &mut SudokuGame) {
-        let mut buffer = self.buffer.clone();
-        for item in self.items.iter_mut() {
-            item.board_init(game, &mut buffer);
+        let buffer = self.buffer.clone();
+
+        let len = self.items.len();
+        for idx in 0..len {
+            let mut dummy_item: Box<dyn StatusBarItem + 'static> = Box::<Dummy>::default();
+
+            let Some(item) = self.items.get_mut(idx) else {
+                continue;
+            };
+
+            std::mem::swap(item, &mut dummy_item);
+            let mut item = dummy_item;
+            item.board_init(game, self);
+
+            *self.items.get_mut(idx).unwrap() = item;
         }
         self.buffer = buffer;
     }
@@ -109,14 +134,22 @@ impl StatusBar {
             return None;
         };
 
-        let Some(item) = self.item_with_name(command_name) else {
+        let mut buffer = command_words.collect::<Vec<_>>().join(" ");
+
+        let mut dummy_item: Box<dyn StatusBarItem + 'static> = Box::<Dummy>::default();
+        let Some(idx) = self.index_with_name(command_name) else {
             return None;
         };
 
-        let mut buffer = command_words.collect::<Vec<_>>().join(" ");
+        let Some(item) = self.items.get_mut(idx) else {
+            return None;
+        };
+
+        std::mem::swap(item, &mut dummy_item);
+        let mut item = dummy_item;
 
         let before = buffer.clone();
-        item.activated(game, &mut buffer);
+        item.activated(game, self);
         let name_after = item.name();
 
         if before == buffer {
@@ -125,6 +158,7 @@ impl StatusBar {
 
         self.buffer = buffer;
 
+        *self.items.get_mut(idx).unwrap() = item;
         Some(name_after.to_string()) // calling item.activate() could hypothetically result in a
                                      // changing of name
     }
@@ -200,18 +234,22 @@ impl StatusBar {
         let font_size = status_bar_height * 0.9;
         let cursor_y = start_y + (font_size / 1.25);
 
-        let mut buffer = self.buffer.clone();
-
         let mut i = 0;
-        for item in self.items.iter_mut() {
+        for raw_idx in 0..self.items.len() {
+            let mut dummy_item: Box<dyn StatusBarItem + 'static> = Box::<Dummy>::default();
+
+            let item = self.items.get_mut(raw_idx).unwrap();
+            std::mem::swap(item, &mut dummy_item);
+            let mut item = dummy_item;
+
             let display_mode = item.display_mode();
             let display = !matches!(display_mode, StatusBarDisplayMode::None);
 
             if display && InputAction::is_function_pressed(i + 1, InputActionContext::Generic) {
-                let before = buffer.clone();
-                item.activated(game, &mut buffer);
-                if before == buffer {
-                    buffer.clear();
+                let before = self.buffer.clone();
+                item.activated(game, self);
+                if before == self.buffer {
+                    self.buffer.clear();
                 }
             }
 
@@ -265,9 +303,9 @@ impl StatusBar {
                 cursor_x += 16.0;
                 i += 1;
             }
-        }
 
-        self.buffer = buffer;
+            *self.items.get_mut(raw_idx).unwrap() = item;
+        }
 
         // Now that each status bar item has been drawn, we can start to draw the buffer input
         let mut ignore_next_input = false;
