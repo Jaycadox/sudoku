@@ -53,7 +53,7 @@ fn draw_sudoku(game: &mut SudokuGame, drawing: &DrawingSettings, status_bar: &mu
         _ => vec![],
     };
 
-    let mut key = InputAction::get_last_input();
+    let mut key = InputAction::get_last_input(InputActionContext::Generic);
 
     if let Some((mx, my)) = mouse_pos {
         let mut change_selected_to_cursor = false;
@@ -242,7 +242,7 @@ fn draw_sudoku(game: &mut SudokuGame, drawing: &DrawingSettings, status_bar: &mu
         if let Some(ref key) = key {
             match key {
                 InputAction::MoveUp => {
-                    if is_key_down(KeyCode::LeftShift) {
+                    if InputAction::is_key_down(KeyCode::LeftShift, InputActionContext::Generic) {
                         if *sy < 3 {
                             *sy += 6;
                         } else {
@@ -255,7 +255,7 @@ fn draw_sudoku(game: &mut SudokuGame, drawing: &DrawingSettings, status_bar: &mu
                     }
                 }
                 InputAction::MoveDown => {
-                    if is_key_down(KeyCode::LeftShift) {
+                    if InputAction::is_key_down(KeyCode::LeftShift, InputActionContext::Generic) {
                         if *sy > 5 {
                             *sy -= 6;
                         } else {
@@ -268,7 +268,7 @@ fn draw_sudoku(game: &mut SudokuGame, drawing: &DrawingSettings, status_bar: &mu
                     }
                 }
                 InputAction::MoveRight => {
-                    if is_key_down(KeyCode::LeftShift) {
+                    if InputAction::is_key_down(KeyCode::LeftShift, InputActionContext::Generic) {
                         if *sx > 5 {
                             *sx -= 6;
                         } else {
@@ -281,7 +281,7 @@ fn draw_sudoku(game: &mut SudokuGame, drawing: &DrawingSettings, status_bar: &mu
                     }
                 }
                 InputAction::MoveLeft => {
-                    if is_key_down(KeyCode::LeftShift) {
+                    if InputAction::is_key_down(KeyCode::LeftShift, InputActionContext::Generic) {
                         if *sx < 3 {
                             *sx += 6;
                         } else {

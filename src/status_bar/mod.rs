@@ -1,12 +1,14 @@
+use std::time::Instant;
+
 use macroquad::{
     color::*,
-    miniquad::window::screen_size,
+    miniquad::{window::screen_size, KeyCode},
     shapes::{draw_line, draw_rectangle},
 };
 
 use crate::{
     draw_helper::*,
-    input_helper::{self, InputAction},
+    input_helper::{self, InputAction, InputActionChar, InputActionContext},
     sudoku_game::SudokuGame,
 };
 
@@ -28,19 +30,25 @@ pub enum StatusBarItemStatus<'a> {
 
 pub trait StatusBarItem {
     fn name(&self) -> &'static str;
-    fn activated(&mut self, game: &mut SudokuGame);
+    fn activated(&mut self, game: &mut SudokuGame, buffer: &mut String);
     fn update(&mut self, game: &mut SudokuGame) -> (String, Color);
-    fn board_init(&mut self, game: &mut SudokuGame);
+    fn board_init(&mut self, game: &mut SudokuGame, buffer: &mut String);
     fn status(&mut self) -> StatusBarItemStatus;
 }
 
 pub struct StatusBar {
+    time_started: Instant,
     pub items: Vec<Box<dyn StatusBarItem>>,
+    pub buffer: String,
 }
 
 impl StatusBar {
     pub fn new() -> Self {
-        Self { items: vec![] }
+        Self {
+            time_started: Instant::now(),
+            items: vec![],
+            buffer: String::new(),
+        }
     }
 
     pub fn add<T>(&mut self)
@@ -61,9 +69,19 @@ impl StatusBar {
     }
 
     pub fn restart(&mut self, game: &mut SudokuGame) {
+        let mut buffer = self.buffer.clone();
         for item in self.items.iter_mut() {
-            item.board_init(game);
+            item.board_init(game, &mut buffer);
         }
+        self.buffer = buffer;
+    }
+
+    fn should_draw_buffer_line(&self) -> bool {
+        let duration = Instant::now().duration_since(self.time_started);
+        let duration_secs = duration.as_secs_f32();
+        let num_half_secs = duration_secs / 0.5;
+        let whole_num_half_secs = num_half_secs as u32;
+        whole_num_half_secs % 2 == 0
     }
 
     pub fn draw(&mut self, game: &mut SudokuGame, drawing: &DrawingSettings) {
@@ -86,17 +104,20 @@ impl StatusBar {
         let font_size = status_bar_height * 0.9;
         let cursor_y = start_y + (font_size / 1.25);
 
-        let key = input_helper::InputAction::get_last_input();
+        let mut buffer = self.buffer.clone();
+
+        let key = input_helper::InputAction::get_last_input(InputActionContext::Generic);
         if let Some(input_helper::InputAction::Function(x)) = key {
             if let Some(item) = self.items.get_mut(x as usize - 1) {
-                item.activated(game);
+                let before = buffer.clone();
+                item.activated(game, &mut buffer);
+                if before == buffer {
+                    buffer.clear();
+                }
             }
         }
 
-        let item_count = self.items.len();
         for (i, item) in self.items.iter_mut().enumerate() {
-            let last = i == item_count - 1;
-
             let font_color = if InputAction::is_function_down(i as u8 + 1) {
                 Color::from_rgba(200, 200, 255, 255)
             } else {
@@ -112,23 +133,73 @@ impl StatusBar {
                 font_color,
             );
             cursor_x += bounds.0;
-
             let (text, color) = item.update(game);
             let bounds =
                 draw_and_measure_text(drawing, &text, cursor_x, cursor_y, font_size, color);
             cursor_x += bounds.0;
-            if !last {
-                cursor_x += 8.0;
-                draw_line(
-                    cursor_x,
-                    start_y,
-                    cursor_x,
-                    height,
-                    get_normal_line_width(),
-                    Color::from_rgba(30, 30, 30, 255),
-                );
-                cursor_x += 16.0;
+            cursor_x += 8.0;
+            draw_line(
+                cursor_x,
+                start_y,
+                cursor_x,
+                height,
+                get_normal_line_width(),
+                Color::from_rgba(30, 30, 30, 255),
+            );
+            cursor_x += 16.0;
+        }
+
+        self.buffer = buffer;
+
+        // Now that each status bar item has been drawn, we can start to draw the buffer input
+
+        if let Some(InputAction::ClearBuffer) =
+            InputAction::get_last_input(InputActionContext::Buffer)
+        {
+            self.buffer.clear();
+        }
+
+        let key = InputAction::get_last_input_char(InputActionContext::Buffer);
+
+        match key {
+            Some(InputActionChar::Char(c)) => {
+                self.time_started = Instant::now();
+                self.buffer.push(c)
             }
+            Some(InputActionChar::Backspace) => {
+                let _ = self.buffer.pop();
+            }
+            Some(InputActionChar::Clear) => self.buffer.clear(),
+            None => {}
+        };
+
+        let color = if InputAction::is_key_down(KeyCode::LeftControl, InputActionContext::Buffer) {
+            YELLOW
+        } else {
+            WHITE
+        };
+
+        let bounds = draw_and_measure_text(
+            drawing,
+            &format!(">{}", self.buffer),
+            cursor_x,
+            cursor_y,
+            font_size,
+            color,
+        );
+
+        cursor_x += bounds.0 + 3.0;
+
+        if self.should_draw_buffer_line() {
+            let line_padding = status_bar_height * 0.25;
+            draw_line(
+                cursor_x,
+                start_y + line_padding,
+                cursor_x,
+                height - line_padding,
+                get_normal_line_width(),
+                color,
+            );
         }
     }
 }

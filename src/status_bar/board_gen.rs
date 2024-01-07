@@ -49,9 +49,28 @@ impl StatusBarItem for BoardGen {
         "BoardGen"
     }
 
-    fn activated(&mut self, _old_game: &mut SudokuGame) {
+    fn activated(&mut self, _old_game: &mut SudokuGame, buffer: &mut String) {
+        let num_tiles_target = match buffer.parse::<u8>() {
+            Ok(val) => val,
+            Err(_) => {
+                if !buffer.is_empty() {
+                    *buffer = "BoardGen: failed to parse tiles target".to_string();
+                    self.status = BoardGenStatus::Failed;
+                    return;
+                }
+                30
+            }
+        };
+
         let mut game = SudokuGame::new(None);
         let count = game.cells.iter().count();
+
+        if num_tiles_target as usize >= count {
+            *buffer = format!("BoardGen: tiles target too large. max={count}");
+            self.status = BoardGenStatus::Failed;
+            return;
+        }
+
         fn inner(game: &mut SudokuGame, start_idx: usize, count: usize) -> bool {
             if start_idx == count {
                 return false;
@@ -95,7 +114,7 @@ impl StatusBarItem for BoardGen {
             let mut previous_states: Vec<(SudokuGame, usize)> = vec![];
             let mut undo_count = 0;
 
-            while total_numbers > 30 {
+            while total_numbers > num_tiles_target as usize {
                 let random_tile_idx = rand::thread_rng().gen_range(0..count);
                 if attempted_cells.contains(&random_tile_idx) {
                     continue;
@@ -179,7 +198,7 @@ impl StatusBarItem for BoardGen {
         }
     }
 
-    fn board_init(&mut self, _game: &mut SudokuGame) {
+    fn board_init(&mut self, _game: &mut SudokuGame, _buffer: &mut String) {
         let old_status = self.status.clone();
         *self = Default::default();
         self.status = old_status;

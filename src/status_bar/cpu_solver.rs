@@ -4,10 +4,11 @@ use std::{
 };
 
 use bit_vec::BitVec;
-use macroquad::{color::*, input::is_key_down, miniquad::KeyCode};
+use macroquad::{color::*, miniquad::KeyCode};
 use threadpool::ThreadPool;
 
 use crate::{
+    input_helper::{InputAction, InputActionContext},
     status_bar::{StatusBarItem, StatusBarItemOkData, StatusBarItemStatus},
     sudoku_game::SudokuGame,
     task_status::TaskStatus,
@@ -78,15 +79,15 @@ impl StatusBarItem for SolveTask {
         }
     }
 
-    fn activated(&mut self, game: &mut SudokuGame) {
-        if is_key_down(KeyCode::LeftShift) {
-            self.board_init(game);
+    fn activated(&mut self, game: &mut SudokuGame, buffer: &mut String) {
+        if InputAction::is_key_down(KeyCode::LeftShift, InputActionContext::Generic) {
+            self.board_init(game, buffer);
         } else if let TaskStatus::Done(solved_game) = self.get() {
             game.cells = solved_game.clone().cells;
         }
     }
 
-    fn board_init(&mut self, game: &mut SudokuGame) {
+    fn board_init(&mut self, game: &mut SudokuGame, _buffer: &mut String) {
         *self = SolveTask::new(game);
     }
 

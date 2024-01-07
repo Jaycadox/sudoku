@@ -10,7 +10,7 @@ impl StatusBarItem for Fps {
         "Fps"
     }
 
-    fn activated(&mut self, _game: &mut crate::sudoku_game::SudokuGame) {}
+    fn activated(&mut self, _game: &mut crate::sudoku_game::SudokuGame, _buffer: &mut String) {}
 
     fn update(
         &mut self,
@@ -19,7 +19,7 @@ impl StatusBarItem for Fps {
         (format!("{:<4}", get_fps()), WHITE)
     }
 
-    fn board_init(&mut self, _game: &mut crate::sudoku_game::SudokuGame) {}
+    fn board_init(&mut self, _game: &mut crate::sudoku_game::SudokuGame, _buffer: &mut String) {}
 
     fn status(&mut self) -> super::StatusBarItemStatus {
         super::StatusBarItemStatus::Ok(super::StatusBarItemOkData::None)
