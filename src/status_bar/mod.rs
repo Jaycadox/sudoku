@@ -90,6 +90,8 @@ impl StatusBar {
 
     fn buffer_entered(&mut self, game: &mut SudokuGame) -> Option<String> {
         let buffer = self.buffer.clone();
+        self.buffer.clear();
+
         let mut command_words = buffer.split_whitespace();
 
         let Some(command_name) = command_words.next() else {
@@ -139,10 +141,10 @@ impl StatusBar {
                         StatusBarItemStatus::Ok(_) => continue,
                     };
                 } else {
-                    return Err("ChangedCommandName".to_string())?;
+                    return Err(format!("ChangedCommandName: {cmd_name}"))?;
                 }
             } else {
-                return Err("BadCommandName".to_string())?;
+                return Err(format!("BadCommand: {cmd}"))?;
             }
         }
 
