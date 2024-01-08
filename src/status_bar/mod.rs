@@ -1,4 +1,4 @@
-use std::time::Instant;
+use std::{collections::VecDeque, time::Instant};
 
 use macroquad::{
     color::*,
@@ -12,8 +12,9 @@ use crate::{
     sudoku_game::SudokuGame,
 };
 
-use self::dummy::Dummy;
+use self::{add::BuiltinAdd, dummy::Dummy};
 
+mod add;
 pub mod board_gen;
 pub mod cpu_solve;
 mod dummy;
@@ -54,7 +55,7 @@ pub struct StatusBar {
     time_started: Instant,
     items: Vec<Box<dyn StatusBarItem>>,
     pub buffer: String,
-    commands_queue: Vec<String>,
+    commands_queue: VecDeque<String>,
     current_command: Option<String>,
 }
 
@@ -62,9 +63,9 @@ impl StatusBar {
     pub fn new() -> Self {
         Self {
             time_started: Instant::now(),
-            items: vec![],
+            items: vec![Box::<BuiltinAdd>::default()],
             buffer: String::new(),
-            commands_queue: vec![],
+            commands_queue: VecDeque::new(),
             current_command: None,
         }
     }
@@ -126,7 +127,6 @@ impl StatusBar {
 
     fn buffer_entered(&mut self, game: &mut SudokuGame) -> Option<String> {
         let buffer = self.buffer.clone();
-        self.buffer.clear();
 
         let mut command_words = buffer.split_whitespace();
 
@@ -149,10 +149,11 @@ impl StatusBar {
         let mut item = dummy_item;
 
         let before = buffer.clone();
+        self.buffer = buffer.clone();
         item.activated(game, self);
         let name_after = item.name();
 
-        if before == buffer {
+        if before == self.buffer {
             buffer.clear();
         }
 
@@ -175,7 +176,7 @@ impl StatusBar {
             }
         }
 
-        while let Some(cmd) = self.commands_queue.pop() {
+        while let Some(cmd) = self.commands_queue.pop_front() {
             self.buffer = cmd.to_string();
             if let Some(cmd_name) = self.buffer_entered(game) {
                 self.current_command = Some(cmd_name.clone());
@@ -202,7 +203,7 @@ impl StatusBar {
                 .iter()
                 .flat_map(|x| {
                     x.lines()
-                        .flat_map(|y| y.split('&').map(|z| z.trim().to_string()).rev())
+                        .flat_map(|y| y.split('&').map(|z| z.trim().to_string()))
                 })
                 .collect(),
         );
@@ -210,9 +211,7 @@ impl StatusBar {
 
     pub fn draw(&mut self, game: &mut SudokuGame, drawing: &DrawingSettings) {
         if let Err(message) = self.process_queued_buffer_commands(game) {
-            if self.buffer.is_empty() {
-                self.buffer = message;
-            }
+            self.buffer = message;
         }
 
         let (width, height) = screen_size();
@@ -384,7 +383,7 @@ impl StatusBar {
         cursor_x += 16.0;
 
         // Next, if there's a command queue, we need to display it
-        let mut commands_queue = self.commands_queue.clone();
+        let mut commands_queue = self.commands_queue.iter().cloned().collect::<Vec<_>>();
         if let Some(active_command) = self.current_command.as_ref() {
             commands_queue.push(format!("{}...", active_command));
         }

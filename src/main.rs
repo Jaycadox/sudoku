@@ -8,9 +8,6 @@ use draw_helper::*;
 use input_helper::*;
 use macroquad::miniquad::window::screen_size;
 use macroquad::prelude::*;
-use status_bar::board_gen::BoardGen;
-use status_bar::cpu_solve::*;
-use status_bar::fps::Fps;
 use status_bar::{StatusBar, StatusBarItemStatus};
 use std::collections::HashSet;
 use sudoku_game::SudokuGame;
@@ -316,9 +313,8 @@ async fn main() {
     let drawing = DrawingSettings::default();
 
     let mut status_bar = StatusBar::new();
-    status_bar.add::<SolveTask>();
-    status_bar.add::<BoardGen>();
-    status_bar.add::<Fps>();
+    status_bar
+        .enter_buffer_commands(&["BuiltinAdd CpuSolve & BuiltinAdd BoardGen & BuiltinAdd Fps"]);
 
     let mut game = SudokuGame::new(Some(&mut status_bar));
 
@@ -330,6 +326,5 @@ async fn main() {
 
         status_bar.draw(&mut game, &drawing);
         next_frame().await;
-        std::thread::sleep(std::time::Duration::from_millis(8));
     }
 }
