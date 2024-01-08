@@ -180,7 +180,7 @@ impl StatusBarItem for BoardGen {
     }
 
     fn update(&mut self, game: &mut SudokuGame) -> (String, macroquad::prelude::Color) {
-        if let Ok(status_update) = self.rx.try_recv() {
+        while let Ok(status_update) = self.rx.try_recv() {
             self.status = match &status_update {
                 BoardGenUpdate::FinalResult(Some(_)) => BoardGenStatus::Done,
                 BoardGenUpdate::FinalResult(None) => BoardGenStatus::Failed,
