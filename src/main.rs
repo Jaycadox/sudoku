@@ -317,14 +317,16 @@ async fn main() {
     let rc = ProjectDirs::from("io.github", "Jaycadox", "Sudoku")
         .and_then(|dirs| {
             let config_dir = dirs.config_dir();
-            println!("Loading config from: {}", config_dir.display());
-            if !std::path::Path::exists(config_dir) {
+            let config_file = config_dir.join(".sudokurc").to_path_buf();
+            println!("Loading config from: {}", config_file.display());
+            if !std::path::Path::exists(&config_file) {
                 eprintln!("Config doesn't exist, generating default config...");
-                let mut f = std::fs::File::create(config_dir).ok()?;
+                std::fs::create_dir_all(config_dir).ok()?;
+                let mut f = std::fs::File::create(&config_file).ok()?;
                 f.write_all(DEFAULT_RC.as_bytes()).ok()?;
             }
 
-            std::fs::read_to_string(config_dir).ok()
+            std::fs::read_to_string(config_file).ok()
         })
         .unwrap_or_else(|| {
             eprintln!("Failed to load config from file, loading default config from memory...");
