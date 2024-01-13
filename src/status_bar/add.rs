@@ -1,5 +1,3 @@
-use macroquad::color::WHITE;
-
 use super::{board_gen::BoardGen, cpu_solve::SolveTask, fps::Fps, StatusBarItem};
 
 #[derive(Default)]
@@ -24,24 +22,6 @@ impl StatusBarItem for BuiltinAdd {
                 status_bar.buffer = "BuiltinAdd: could not find item".to_string();
             }
         };
-    }
-
-    fn update(
-        &mut self,
-        _game: &mut crate::sudoku_game::SudokuGame,
-    ) -> (String, macroquad::prelude::Color) {
-        ("".to_string(), WHITE)
-    }
-
-    fn board_init(
-        &mut self,
-        _game: &mut crate::sudoku_game::SudokuGame,
-        _status_bar: &mut super::StatusBar,
-    ) {
-    }
-
-    fn status(&mut self) -> super::StatusBarItemStatus {
-        super::StatusBarItemStatus::Ok(super::StatusBarItemOkData::None)
     }
 
     fn display_mode(&self) -> super::StatusBarDisplayMode {

@@ -64,15 +64,4 @@ impl StatusBarItem for Fps {
         let output = format!("{}{}", get_fps(), indicator);
         (format!("{:<4}", output), WHITE)
     }
-
-    fn board_init(
-        &mut self,
-        _game: &mut crate::sudoku_game::SudokuGame,
-        _status_bar: &mut StatusBar,
-    ) {
-    }
-
-    fn status(&mut self) -> super::StatusBarItemStatus {
-        super::StatusBarItemStatus::Ok(super::StatusBarItemOkData::None)
-    }
 }

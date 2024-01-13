@@ -43,9 +43,21 @@ pub enum StatusBarDisplayMode {
 pub trait StatusBarItem {
     fn name(&self) -> &'static str;
     fn activated(&mut self, game: &mut SudokuGame, status_bar: &mut StatusBar);
-    fn update(&mut self, game: &mut SudokuGame) -> (String, Color);
-    fn board_init(&mut self, game: &mut SudokuGame, status_bar: &mut StatusBar);
-    fn status(&mut self) -> StatusBarItemStatus;
+
+    fn update(&mut self, game: &mut SudokuGame) -> (String, Color) {
+        let _ = game;
+        ("".to_string(), WHITE)
+    }
+
+    fn board_init(&mut self, game: &mut SudokuGame, status_bar: &mut StatusBar) {
+        let _ = status_bar;
+        let _ = game;
+    }
+
+    fn status(&mut self) -> StatusBarItemStatus {
+        StatusBarItemStatus::Ok(StatusBarItemOkData::None)
+    }
+
     fn display_mode(&self) -> StatusBarDisplayMode {
         StatusBarDisplayMode::Normal
     }
