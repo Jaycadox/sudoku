@@ -309,7 +309,8 @@ fn window_conf() -> Conf {
     }
 }
 
-const DEFAULT_RC: &str = "BuiltinAdd CpuSolve & BuiltinAdd BoardGen & BuiltinAdd Fps & BuiltinAdd OnBoardInit & OnBoardInit CpuSolve run & BoardGen 30";
+const DEFAULT_RC: &str =
+    "BuiltinAdd CpuSolve BoardGen Fps OnBoardInit & OnBoardInit CpuSolve run & BoardGen 30";
 
 #[macroquad::main(window_conf)]
 async fn main() {

@@ -15,16 +15,18 @@ impl StatusBarItem for BuiltinAdd {
         _game: &mut crate::sudoku_game::SudokuGame,
         status_bar: &mut super::StatusBar,
     ) {
-        let buffer = status_bar.buffer.to_lowercase();
-        match &buffer[..] {
-            "boardgen" => status_bar.add::<BoardGen>(),
-            "onboardinit" => status_bar.add::<OnBoardInit>(),
-            "cpusolve" => status_bar.add::<SolveTask>(),
-            "fps" => status_bar.add::<Fps>(),
-            _ => {
-                status_bar.buffer = "BuiltinAdd: could not find item".to_string();
-            }
-        };
+        for item in status_bar.buffer.to_lowercase().split_whitespace() {
+            match item {
+                "boardgen" => status_bar.add::<BoardGen>(),
+                "onboardinit" => status_bar.add::<OnBoardInit>(),
+                "cpusolve" => status_bar.add::<SolveTask>(),
+                "fps" => status_bar.add::<Fps>(),
+                _ => {
+                    status_bar.buffer = "BuiltinAdd: could not find item".to_string();
+                    break;
+                }
+            };
+        }
     }
 
     fn display_mode(&self) -> super::StatusBarDisplayMode {
