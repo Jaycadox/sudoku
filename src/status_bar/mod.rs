@@ -19,6 +19,7 @@ pub mod board_gen;
 pub mod cpu_solve;
 mod dummy;
 pub mod fps;
+pub mod on_board_init;
 
 #[allow(dead_code)]
 pub enum StatusBarItemOkData<'a> {

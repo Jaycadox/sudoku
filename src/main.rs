@@ -314,11 +314,9 @@ async fn main() {
 
     let mut status_bar = StatusBar::new();
     status_bar
-        .enter_buffer_commands(&["BuiltinAdd CpuSolve & BuiltinAdd BoardGen & BuiltinAdd Fps"]);
+        .enter_buffer_commands(&["BuiltinAdd CpuSolve & BuiltinAdd BoardGen & BuiltinAdd Fps & BuiltinAdd OnBoardInit & OnBoardInit CpuSolve run & BoardGen 30"]);
 
     let mut game = SudokuGame::new(Some(&mut status_bar));
-
-    status_bar.enter_buffer_commands(&["BoardGen 30"]);
 
     loop {
         clear_background(BLACK);

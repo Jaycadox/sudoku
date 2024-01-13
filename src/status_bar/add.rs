@@ -1,4 +1,6 @@
-use super::{board_gen::BoardGen, cpu_solve::SolveTask, fps::Fps, StatusBarItem};
+use super::{
+    board_gen::BoardGen, cpu_solve::SolveTask, fps::Fps, on_board_init::OnBoardInit, StatusBarItem,
+};
 
 #[derive(Default)]
 pub struct BuiltinAdd;
@@ -16,6 +18,7 @@ impl StatusBarItem for BuiltinAdd {
         let buffer = status_bar.buffer.to_lowercase();
         match &buffer[..] {
             "boardgen" => status_bar.add::<BoardGen>(),
+            "onboardinit" => status_bar.add::<OnBoardInit>(),
             "cpusolve" => status_bar.add::<SolveTask>(),
             "fps" => status_bar.add::<Fps>(),
             _ => {
