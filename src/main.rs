@@ -4,12 +4,13 @@ mod status_bar;
 mod sudoku_game;
 mod task_status;
 
+use directories::ProjectDirs;
 use draw_helper::*;
 use input_helper::*;
 use macroquad::miniquad::window::screen_size;
 use macroquad::prelude::*;
 use status_bar::{StatusBar, StatusBarItemStatus};
-use std::collections::HashSet;
+use std::{collections::HashSet, io::Write};
 use sudoku_game::SudokuGame;
 
 fn draw_sudoku(game: &mut SudokuGame, drawing: &DrawingSettings, status_bar: &mut StatusBar) {
@@ -308,13 +309,31 @@ fn window_conf() -> Conf {
     }
 }
 
+const DEFAULT_RC: &str = "BuiltinAdd CpuSolve & BuiltinAdd BoardGen & BuiltinAdd Fps & BuiltinAdd OnBoardInit & OnBoardInit CpuSolve run & BoardGen 30";
+
 #[macroquad::main(window_conf)]
 async fn main() {
+    let rc = ProjectDirs::from("io.github", "Jaycadox", "Sudoku")
+        .and_then(|dirs| {
+            let config_dir = dirs.config_dir();
+            println!("Loading config from: {}", config_dir.display());
+            if !std::path::Path::exists(config_dir) {
+                eprintln!("Config doesn't exist, generating default config...");
+                let mut f = std::fs::File::create(config_dir).ok()?;
+                f.write_all(DEFAULT_RC.as_bytes()).ok()?;
+            }
+
+            std::fs::read_to_string(config_dir).ok()
+        })
+        .unwrap_or_else(|| {
+            eprintln!("Failed to load config from file, loading default config from memory...");
+            DEFAULT_RC.to_string()
+        });
+
     let drawing = DrawingSettings::default();
 
     let mut status_bar = StatusBar::new();
-    status_bar
-        .enter_buffer_commands(&["BuiltinAdd CpuSolve & BuiltinAdd BoardGen & BuiltinAdd Fps & BuiltinAdd OnBoardInit & OnBoardInit CpuSolve run & BoardGen 30"]);
+    status_bar.enter_buffer_commands(&[&rc[..]]);
 
     let mut game = SudokuGame::new(Some(&mut status_bar));
 
