@@ -271,31 +271,17 @@ impl StatusBar {
     }
 
     pub fn draw(&mut self, game: &mut SudokuGame, drawing: &DrawingSettings) {
-        let span = span!(Level::INFO, "StatusBar");
+        self.process_inputs(game);
+        self.render(game, drawing);
+    }
+
+    fn process_inputs(&mut self, game: &mut SudokuGame) {
+        let span = span!(Level::INFO, "ProcessStatusBar");
         let _enter = span.enter();
 
         if let Err(message) = self.process_queued_buffer_commands(game) {
             self.buffer = message;
         }
-
-        let (width, height) = screen_size();
-        let status_bar_height = get_status_bar_height();
-
-        let (start_x, start_y) = (0.0, height - status_bar_height);
-        let (bar_width, bar_height) = (width, status_bar_height);
-
-        draw_rectangle(
-            start_x,
-            start_y,
-            bar_width,
-            bar_height,
-            Color::from_rgba(20, 20, 20, 255),
-        );
-
-        let mut cursor_x = 20.0;
-
-        let font_size = status_bar_height * 0.9;
-        let cursor_y = start_y + (font_size / 1.25);
 
         let mut i = 0;
         for raw_idx in 0..self.items.len() {
@@ -321,8 +307,85 @@ impl StatusBar {
                 }
             }
 
+            if display {
+                i += 1;
+            }
+
+            self.items[raw_idx] = item;
+        }
+
+        let mut ignore_next_input = false;
+        match InputAction::get_last_input(InputActionContext::Buffer) {
+            Some(InputAction::ClearBuffer) => {
+                self.buffer.clear();
+            }
+            Some(InputAction::PasteBuffer) => {
+                if let Ok(txt) = arboard::Clipboard::new().and_then(|mut cb| cb.get_text()) {
+                    self.buffer.push_str(&txt);
+                    ignore_next_input = true;
+                }
+            }
+            Some(InputAction::EnterBuffer) => {
+                self.enter_buffer_commands(&[&self.buffer.clone()]);
+            }
+            _ => {}
+        };
+
+        let key = InputAction::get_last_input_char(InputActionContext::Buffer);
+
+        match key {
+            Some(InputActionChar::Char(c)) => {
+                self.time_started = Instant::now();
+                if !ignore_next_input {
+                    self.buffer.push(c)
+                }
+            }
+            Some(InputActionChar::Backspace) => {
+                let _ = self.buffer.pop();
+            }
+            Some(InputActionChar::Clear) => self.buffer.clear(),
+            None => {}
+        };
+    }
+
+    fn render(&mut self, game: &mut SudokuGame, drawing: &DrawingSettings) {
+        let span = span!(Level::INFO, "RenderStatusBar");
+        let _enter = span.enter();
+
+        let (width, height) = screen_size();
+        let status_bar_height = get_status_bar_height();
+
+        let (start_x, start_y) = (0.0, height - status_bar_height);
+        let (bar_width, bar_height) = (width, status_bar_height);
+
+        draw_rectangle(
+            start_x,
+            start_y,
+            bar_width,
+            bar_height,
+            Color::from_rgba(20, 20, 20, 255),
+        );
+
+        let mut cursor_x = 20.0;
+
+        let font_size = status_bar_height * 0.9;
+        let cursor_y = start_y + (font_size / 1.25);
+
+        for (i, item) in self
+            .items
+            .iter_mut()
+            .filter(|x| !matches!(x.display_mode(), StatusBarDisplayMode::None))
+            .enumerate()
+        {
+            let mut dummy_item: Box<dyn StatusBarItem + 'static> = Box::<Dummy>::default();
+
+            let display_mode = item.display_mode();
+
+            std::mem::swap(item, &mut dummy_item);
+            let (mut item, dummy_item) = (dummy_item, item);
+
             let font_color =
-                if InputAction::is_function_down(i + 1, InputActionContext::Generic) && display {
+                if InputAction::is_function_down(i as u8 + 1, InputActionContext::Generic) {
                     Color::from_rgba(200, 200, 255, 255)
                 } else {
                     WHITE
@@ -358,56 +421,20 @@ impl StatusBar {
                 cursor_x += bounds.0;
             }
 
-            if display {
-                cursor_x += 16.0;
-                draw_line(
-                    cursor_x,
-                    start_y,
-                    cursor_x,
-                    height,
-                    get_normal_line_width(),
-                    Color::from_rgba(30, 30, 30, 255),
-                );
-                cursor_x += 16.0;
-                i += 1;
-            }
-
-            *self.items.get_mut(raw_idx).unwrap() = item;
+            cursor_x += 16.0;
+            draw_line(
+                cursor_x,
+                start_y,
+                cursor_x,
+                height,
+                get_normal_line_width(),
+                Color::from_rgba(30, 30, 30, 255),
+            );
+            cursor_x += 16.0;
+            std::mem::swap(&mut item, dummy_item);
         }
 
         // Now that each status bar item has been drawn, we can start to draw the buffer input
-        let mut ignore_next_input = false;
-        match InputAction::get_last_input(InputActionContext::Buffer) {
-            Some(InputAction::ClearBuffer) => {
-                self.buffer.clear();
-            }
-            Some(InputAction::PasteBuffer) => {
-                if let Ok(txt) = arboard::Clipboard::new().and_then(|mut cb| cb.get_text()) {
-                    self.buffer.push_str(&txt);
-                    ignore_next_input = true;
-                }
-            }
-            Some(InputAction::EnterBuffer) => {
-                self.enter_buffer_commands(&[&self.buffer.clone()]);
-            }
-            _ => {}
-        };
-
-        let key = InputAction::get_last_input_char(InputActionContext::Buffer);
-
-        match key {
-            Some(InputActionChar::Char(c)) => {
-                self.time_started = Instant::now();
-                if !ignore_next_input {
-                    self.buffer.push(c)
-                }
-            }
-            Some(InputActionChar::Backspace) => {
-                let _ = self.buffer.pop();
-            }
-            Some(InputActionChar::Clear) => self.buffer.clear(),
-            None => {}
-        };
 
         let color = if InputAction::is_key_down(KeyCode::LeftControl, InputActionContext::Buffer) {
             YELLOW
