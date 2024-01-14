@@ -1,4 +1,4 @@
-use std::rc::Rc;
+use std::{cell::RefCell, collections::HashMap, rc::Rc, str::FromStr, sync::Mutex};
 
 use macroquad::{
     color::Color,
@@ -24,9 +24,11 @@ pub fn get_box_line_width() -> f32 {
 
 #[derive(Clone)]
 pub struct DrawingSettings {
-    font: Rc<Font>,
+    font: Rc<RefCell<Font>>,
+    colour_overrides: Rc<Mutex<HashMap<AppColour, Color>>>,
 }
 
+#[derive(Debug, Eq, Hash, PartialEq)]
 pub enum AppColour {
     Background,
     StatusBar,
@@ -49,16 +51,57 @@ pub enum AppColour {
     BoardUnknownCell,
 }
 
+impl FromStr for AppColour {
+    type Err = ();
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "Background" => Ok(AppColour::Background),
+            "StatusBar" => Ok(AppColour::StatusBar),
+            "StatusBarSeparator" => Ok(AppColour::StatusBarSeparator),
+            "StatusBarItemSelected" => Ok(AppColour::StatusBarItemSelected),
+            "StatusBarItemOkay" => Ok(AppColour::StatusBarItemOkay),
+            "StatusBarItemInProgress" => Ok(AppColour::StatusBarItemInProgress),
+            "StatusBarItemError" => Ok(AppColour::StatusBarItemError),
+            "StatusBarBufferEdit" => Ok(AppColour::StatusBarBufferEdit),
+            "StatusBarItem" => Ok(AppColour::StatusBarItem),
+            "BoardBox" => Ok(AppColour::BoardBox),
+            "BoardLine" => Ok(AppColour::BoardLine),
+            "BoardCellBackground" => Ok(AppColour::BoardCellBackground),
+            "BoardSelectedCellBackground" => Ok(AppColour::BoardSelectedCellBackground),
+            "BoardHighlightedCellBackground" => Ok(AppColour::BoardHighlightedCellBackground),
+            "BoardMousedCellBackground" => Ok(AppColour::BoardMousedCellBackground),
+            "BoardRadifiedCell" => Ok(AppColour::BoardRadifiedCell),
+            "BoardCorrectCell" => Ok(AppColour::BoardCorrectCell),
+            "BoardIncorrectCell" => Ok(AppColour::BoardIncorrectCell),
+            "BoardUnknownCell" => Ok(AppColour::BoardUnknownCell),
+            _ => Err(()),
+        }
+    }
+}
+
 impl Default for DrawingSettings {
     fn default() -> Self {
         Self {
-            font: Rc::new(text::load_ttf_font_from_bytes(include_bytes!("./TWN19.ttf")).unwrap()),
+            font: Rc::new(RefCell::new(
+                text::load_ttf_font_from_bytes(include_bytes!("./TWN19.ttf")).unwrap(),
+            )),
+            colour_overrides: Rc::new(Mutex::new(HashMap::default())),
         }
     }
 }
 
 impl DrawingSettings {
+    pub fn add_override(&self, colour: AppColour, replaced_with: Color) {
+        let mut overrides = self.colour_overrides.lock().unwrap();
+        overrides.insert(colour, replaced_with);
+    }
+
     pub fn colour(&self, colour: AppColour) -> Color {
+        let overrides = self.colour_overrides.lock().unwrap();
+        if let Some(colour) = overrides.get(&colour) {
+            return *colour;
+        }
+
         match colour {
             AppColour::Background => Color::from_rgba(0, 0, 0, 255),
             AppColour::StatusBar => Color::from_rgba(20, 20, 20, 255),
@@ -91,13 +134,14 @@ pub fn draw_and_measure_text(
     font_size: f32,
     color: Color,
 ) -> (f32, f32) {
+    let font = drawing.font.borrow();
     let params = TextParams {
-        font: Some(&drawing.font),
+        font: Some(&*font),
         color,
         font_size: font_size as u16,
         ..Default::default()
     };
     draw_text_ex(text, x, y, params);
-    let dim = measure_text(text, Some(&drawing.font), font_size as u16, 1.0);
+    let dim = measure_text(text, Some(&*font), font_size as u16, 1.0);
     (dim.width, dim.height)
 }

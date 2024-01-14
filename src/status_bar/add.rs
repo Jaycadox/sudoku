@@ -1,5 +1,7 @@
 use tracing::{span, trace, Level};
 
+use crate::status_bar::colour_overwrite::ColourOverwrite;
+
 use super::{
     board_gen::BoardGen, cpu_solve::SolveTask, fps::Fps, on_board_init::OnBoardInit, StatusBarItem,
 };
@@ -33,6 +35,7 @@ impl StatusBarItem for BuiltinAdd {
                 "onboardinit" => status_bar.add::<OnBoardInit>(),
                 "cpusolve" => status_bar.add::<SolveTask>(),
                 "fps" => status_bar.add::<Fps>(),
+                "colouroverwrite" => status_bar.add::<ColourOverwrite>(),
                 _ => {
                     status_bar.buffer = "BuiltinAdd: could not find item".to_string();
                     break;

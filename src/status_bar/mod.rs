@@ -17,6 +17,7 @@ use self::{add::BuiltinAdd, dummy::Dummy};
 
 mod add;
 pub mod board_gen;
+pub mod colour_overwrite;
 pub mod cpu_solve;
 mod dummy;
 pub mod fps;
