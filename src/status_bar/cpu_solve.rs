@@ -6,6 +6,7 @@ use std::{
 use bit_vec::BitVec;
 use macroquad::{color::*, miniquad::KeyCode};
 use threadpool::ThreadPool;
+use tracing::{error, span, trace, Level};
 
 use crate::{
     input_helper::{InputAction, InputActionContext},
@@ -82,12 +83,19 @@ impl StatusBarItem for SolveTask {
     }
 
     fn activated(&mut self, game: &mut SudokuGame, status_bar: &mut StatusBar) {
+        let span = span!(Level::INFO, "SolveTaskActivated");
+        let _enter = span.enter();
+
         if InputAction::is_key_down(KeyCode::LeftShift, InputActionContext::Generic)
             || status_bar.buffer == "run"
         {
+            trace!("Running solve task...");
             *self = SolveTask::new(game);
         } else if let TaskStatus::Done(solved_game) = self.get() {
+            trace!("Filling board with solution...");
             game.cells = solved_game.clone().cells;
+        } else {
+            error!("Could not be fulfilled");
         }
     }
 

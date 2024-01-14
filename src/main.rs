@@ -12,9 +12,14 @@ use macroquad::prelude::*;
 use status_bar::{StatusBar, StatusBarItemStatus};
 use std::{collections::HashSet, io::Write};
 use sudoku_game::SudokuGame;
+use tracing::{debug, error, info, span, trace, Level};
 
 fn draw_sudoku(game: &mut SudokuGame, drawing: &DrawingSettings, status_bar: &mut StatusBar) {
+    let span = span!(Level::INFO, "DrawSudoku");
+    let _enter = span.enter();
+
     if game.reset_signalled {
+        debug!("Game reset signalled, resetting status bar...");
         status_bar.restart(game);
         game.reset_signalled = false;
     }
@@ -297,6 +302,7 @@ fn draw_sudoku(game: &mut SudokuGame, drawing: &DrawingSettings, status_bar: &mu
     }
 
     if let Some(InputAction::Reset) = key {
+        debug!("Manual reset triggered...");
         game.reset(game.clone());
     }
 }
@@ -312,15 +318,18 @@ fn window_conf() -> Conf {
 const DEFAULT_RC: &str =
     "BuiltinAdd CpuSolve BoardGen Fps OnBoardInit & OnBoardInit CpuSolve run & BoardGen 30";
 
-#[macroquad::main(window_conf)]
-async fn main() {
-    let rc = ProjectDirs::from("io.github", "Jaycadox", "Sudoku")
+fn get_rc() -> String {
+    let span = span!(Level::INFO, "ConfigLoad");
+    let _enter = span.enter();
+
+    trace!("Attempting to load/create config...");
+    ProjectDirs::from("io.github", "Jaycadox", "Sudoku")
         .and_then(|dirs| {
             let config_dir = dirs.config_dir();
             let config_file = config_dir.join(".sudokurc").to_path_buf();
-            println!("Loading config from: {}", config_file.display());
+            info!("Loading config from: {}", config_file.display());
             if !std::path::Path::exists(&config_file) {
-                eprintln!("Config doesn't exist, generating default config...");
+                debug!("Config doesn't exist, generating default config...");
                 std::fs::create_dir_all(config_dir).ok()?;
                 let mut f = std::fs::File::create(&config_file).ok()?;
                 f.write_all(DEFAULT_RC.as_bytes()).ok()?;
@@ -329,10 +338,28 @@ async fn main() {
             std::fs::read_to_string(config_file).ok()
         })
         .unwrap_or_else(|| {
-            eprintln!("Failed to load config from file, loading default config from memory...");
+            error!("Failed to load config from file, loading default config from memory...");
             DEFAULT_RC.to_string()
-        });
+        })
+}
 
+#[macroquad::main(window_conf)]
+async fn main() {
+    #[cfg(debug_assertions)]
+    let subscriber = tracing_subscriber::FmtSubscriber::builder()
+        .with_max_level(Level::TRACE)
+        .finish();
+
+    #[cfg(not(debug_assertions))]
+    let subscriber = tracing_subscriber::FmtSubscriber::builder()
+        .with_max_level(Level::DEBUG)
+        .finish();
+
+    tracing::subscriber::set_global_default(subscriber).unwrap();
+
+    let rc = get_rc();
+
+    trace!("Loading drawing settings...");
     let drawing = DrawingSettings::default();
 
     let mut status_bar = StatusBar::new();
@@ -341,6 +368,9 @@ async fn main() {
     let mut game = SudokuGame::new(Some(&mut status_bar));
 
     loop {
+        let span = span!(Level::TRACE, "MainLoop");
+        let _enter = span.enter();
+
         clear_background(BLACK);
         draw_sudoku(&mut game, &drawing, &mut status_bar);
 

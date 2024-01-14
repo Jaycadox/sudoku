@@ -1,6 +1,7 @@
 use std::time::{Duration, Instant};
 
 use macroquad::{color::WHITE, time::get_fps};
+use tracing::{debug, error, span, trace, Level};
 
 use super::{StatusBar, StatusBarItem};
 
@@ -21,16 +22,24 @@ impl StatusBarItem for Fps {
         _game: &mut crate::sudoku_game::SudokuGame,
         status_bar: &mut StatusBar,
     ) {
+        let span = span!(Level::INFO, "FpsTargetActivated");
+        let _enter = span.enter();
+
+        trace!("Attempting to parse: {}", status_bar.buffer);
+
         if status_bar.buffer.is_empty() {
+            debug!("Buffer is empty, removing FPS target...");
             self.target = None;
             return;
         }
 
         let Ok(target) = status_bar.buffer.parse::<usize>() else {
+            error!("Could not parse FPS target");
             status_bar.buffer = "Fps: invalid target".to_string();
             return;
         };
 
+        debug!("Set FPS target to: {}", target);
         self.target = Some(target);
     }
 

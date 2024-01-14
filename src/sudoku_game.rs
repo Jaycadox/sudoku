@@ -1,4 +1,5 @@
 use ndarray::{s, Array2, ArrayView, ArrayView2, Axis, Ix1};
+use tracing::{debug, span, trace, Level};
 
 use crate::status_bar::StatusBar;
 
@@ -22,6 +23,11 @@ impl Clone for SudokuGame {
 
 impl SudokuGame {
     pub fn new(status_bar: Option<&mut StatusBar>) -> Self {
+        let span = span!(Level::INFO, "CreateGame");
+        let _enter = span.enter();
+
+        debug!("Creating Sudoku game...");
+
         let mut cells = Array2::zeros((9, 9));
         let inp =
             ".................................................................................";
@@ -34,6 +40,12 @@ impl SudokuGame {
                 unradified.push(i as u8);
             }
         }
+
+        trace!(
+            "Generated initial unradified set (len = {})",
+            unradified.len()
+        );
+
         let mut game = SudokuGame {
             cells,
             unradified,
@@ -42,6 +54,7 @@ impl SudokuGame {
         };
 
         if let Some(status_bar) = status_bar {
+            trace!("Created with status bar, signalling status bar reset...");
             status_bar.restart(&mut game);
         }
 
@@ -49,16 +62,33 @@ impl SudokuGame {
     }
 
     fn generate_unradified(cells: &Array2<u8>) -> Vec<u8> {
+        let span = span!(Level::INFO, "GenerateUnradified");
+        let _enter = span.enter();
+
+        trace!("Starting to generate list of unradified cells");
         let mut unradified = Vec::new();
         for (i, cell) in cells.iter().enumerate() {
             if *cell == 0 {
                 unradified.push(i as u8);
             }
         }
+
+        trace!(
+            "Done. {}/{} cells were unradified",
+            unradified.len(),
+            cells.iter().count()
+        );
+
         unradified
     }
 
     pub fn reset(&mut self, mut to_state: SudokuGame) {
+        let span = span!(Level::INFO, "ResetBoard");
+        let _enter = span.enter();
+
+        debug!("Resetting board...");
+
+        trace!("Clearing {} cell/s", to_state.unradified.len());
         for unradified in to_state.unradified.clone() {
             *to_state.cells.iter_mut().nth(unradified as usize).unwrap() = 0;
         }

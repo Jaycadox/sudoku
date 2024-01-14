@@ -1,10 +1,11 @@
-use std::{collections::VecDeque, time::Instant};
+use std::{collections::VecDeque, fmt::Display, time::Instant};
 
 use macroquad::{
     color::*,
     miniquad::{window::screen_size, KeyCode},
     shapes::{draw_line, draw_rectangle},
 };
+use tracing::{debug, error, span, trace, warn, Level};
 
 use crate::{
     draw_helper::*,
@@ -31,6 +32,20 @@ pub enum StatusBarItemStatus<'a> {
     Ok(StatusBarItemOkData<'a>),
     Waiting,
     Err,
+}
+
+impl<'a> Display for StatusBarItemStatus<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                StatusBarItemStatus::Ok(_) => "Ok",
+                StatusBarItemStatus::Waiting => "Waiting",
+                StatusBarItemStatus::Err => "Error",
+            }
+        )
+    }
 }
 
 #[allow(dead_code)]
@@ -111,6 +126,9 @@ impl StatusBar {
     }
 
     pub fn restart(&mut self, game: &mut SudokuGame) {
+        let span = span!(Level::INFO, "BoardInit");
+        let _enter = span.enter();
+
         let buffer = self.buffer.clone();
 
         let len = self.items.len();
@@ -139,6 +157,9 @@ impl StatusBar {
     }
 
     fn buffer_entered(&mut self, game: &mut SudokuGame) -> Option<String> {
+        let span = span!(Level::TRACE, "RunCommand");
+        let _enter = span.enter();
+
         let buffer = self.buffer.clone();
 
         let mut command_words = buffer.split_whitespace();
@@ -178,20 +199,36 @@ impl StatusBar {
     }
 
     fn process_queued_buffer_commands(&mut self, game: &mut SudokuGame) -> Result<(), String> {
+        let span = span!(Level::TRACE, "QueuedCommands");
+        let _enter = span.enter();
+
         if let Some(current_command) = &self.current_command.clone() {
+            let span = span!(Level::TRACE, "Wait");
+            let _enter = span.enter();
+
             if let Some(item) = self.item_with_name(current_command) {
+                let item_name = item.name();
                 match item.status() {
                     StatusBarItemStatus::Waiting => return Ok(()),
-                    _ => {
+                    x => {
+                        trace!(
+                            "Command with name '{}' finished with status: {}",
+                            item_name,
+                            x
+                        );
                         self.current_command = None;
                     }
                 };
             }
         }
-
         while let Some(cmd) = self.commands_queue.pop_front() {
+            let span = span!(Level::TRACE, "Run");
+            let _enter = span.enter();
+
+            trace!("Attempting to run: '{}'", cmd);
             self.buffer = cmd.to_string();
             if let Some(cmd_name) = self.buffer_entered(game) {
+                trace!("Ran command with name '{}'", cmd_name);
                 self.current_command = Some(cmd_name.clone());
                 if let Some(item) = self.item_with_name(&cmd_name) {
                     match item.status() {
@@ -200,9 +237,11 @@ impl StatusBar {
                         StatusBarItemStatus::Ok(_) => continue,
                     };
                 } else {
+                    warn!("Unable to query status of command: '{}'", cmd_name);
                     return Err(format!("ChangedCommandName: {cmd_name}"))?;
                 }
             } else {
+                error!("Unable to find handler for command: '{}'", cmd);
                 return Err(format!("BadCommand: {cmd}"))?;
             }
         }
@@ -211,18 +250,30 @@ impl StatusBar {
     }
 
     pub fn enter_buffer_commands(&mut self, commands: &[&str]) {
-        self.commands_queue.append(
-            &mut commands
-                .iter()
-                .flat_map(|x| {
-                    x.lines()
-                        .flat_map(|y| y.split('&').map(|z| z.trim().to_string()))
-                })
-                .collect(),
+        let span = span!(Level::TRACE, "EnterCommands");
+        let _enter = span.enter();
+
+        let mut commands = commands
+            .iter()
+            .flat_map(|x| {
+                x.lines()
+                    .flat_map(|y| y.split('&').map(|z| z.trim().to_string()))
+            })
+            .collect::<VecDeque<_>>();
+
+        trace!(
+            "Adding {} commands to queue: {:?}",
+            commands.len(),
+            commands
         );
+
+        self.commands_queue.append(&mut commands);
     }
 
     pub fn draw(&mut self, game: &mut SudokuGame, drawing: &DrawingSettings) {
+        let span = span!(Level::INFO, "StatusBar");
+        let _enter = span.enter();
+
         if let Err(message) = self.process_queued_buffer_commands(game) {
             self.buffer = message;
         }
@@ -258,6 +309,11 @@ impl StatusBar {
             let display = !matches!(display_mode, StatusBarDisplayMode::None);
 
             if display && InputAction::is_function_pressed(i + 1, InputActionContext::Generic) {
+                debug!(
+                    "Activated status bar item via manual input: {}",
+                    item.name()
+                );
+
                 let before = self.buffer.clone();
                 item.activated(game, self);
                 if before == self.buffer {

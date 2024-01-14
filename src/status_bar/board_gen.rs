@@ -5,6 +5,7 @@ use macroquad::{
     rand::ChooseRandom,
 };
 use rand::Rng;
+use tracing::{debug, error, span, trace, Level};
 
 use crate::{
     status_bar::cpu_solve::{self, SolveTask},
@@ -50,16 +51,27 @@ impl StatusBarItem for BoardGen {
     }
 
     fn activated(&mut self, _old_game: &mut SudokuGame, status_bar: &mut StatusBar) {
+        let span = span!(Level::INFO, "BoardGenActivate");
+        let _enter = span.enter();
+
+        trace!(
+            "Parsing requested number of remaining tiles: {}...",
+            status_bar.buffer
+        );
+
         self.status = BoardGenStatus::Waiting(81);
         let num_tiles_target = match status_bar.buffer.parse::<u8>() {
             Ok(val) => val,
             Err(_) => {
                 if !status_bar.buffer.is_empty() {
+                    error!("Failed to parse number of remaining tiles");
                     status_bar.buffer = "BoardGen: failed to parse tiles target".to_string();
                     self.status = BoardGenStatus::Failed;
                     return;
                 }
-                30
+                let default = 30;
+                trace!("Input is empty, so using default ({})", default);
+                default
             }
         };
 
@@ -67,6 +79,7 @@ impl StatusBarItem for BoardGen {
         let count = game.cells.iter().count();
 
         if num_tiles_target as usize >= count {
+            error!("Input is too large, max = {}", count);
             status_bar.buffer = format!("BoardGen: tiles target too large. max={count}");
             self.status = BoardGenStatus::Failed;
             return;
@@ -104,17 +117,33 @@ impl StatusBarItem for BoardGen {
             amount_valid == 1 && start_idx == count - 1
         }
 
-        inner(&mut game, 0, count);
+        {
+            let span = span!(Level::INFO, "GenerateFilled");
+            let _enter = span.enter();
+            trace!("Starting filled board generation...");
+            inner(&mut game, 0, count);
+        }
 
         let (tx, rx) = std::sync::mpsc::channel();
         self.rx = rx;
+
+        let span = span.clone();
         self._thread = std::thread::spawn(move || {
+            let _parent_enter = span.enter();
+
+            let span = span!(Level::INFO, "Prune");
+            let _enter = span.enter();
+
             let mut total_numbers = count;
             let mut attempted_cells = vec![];
 
             let mut previous_states: Vec<(SudokuGame, usize)> = vec![];
             let mut undo_count = 0;
 
+            trace!(
+                "Starting to prune filled board to match target ({})...",
+                num_tiles_target
+            );
             while total_numbers > num_tiles_target as usize {
                 let random_tile_idx = rand::thread_rng().gen_range(0..count);
                 if attempted_cells.contains(&random_tile_idx) {
@@ -131,6 +160,7 @@ impl StatusBarItem for BoardGen {
                         }
                     }
 
+                    error!("Failed to prune due to too many retries");
                     tx.send(BoardGenUpdate::FinalResult(None)).unwrap();
                     return;
                 }
@@ -159,6 +189,14 @@ impl StatusBarItem for BoardGen {
                             *game.cells.iter_mut().nth(random_tile_idx).unwrap() = og_value;
                         } else {
                             total_numbers -= 1;
+                            if total_numbers % 10 == 0 {
+                                trace!(
+                                    "{}% complete...",
+                                    ((num_tiles_target as f32 / total_numbers as f32) * 100.0)
+                                        as u32
+                                );
+                            }
+
                             tx.send(BoardGenUpdate::ProgressReport(total_numbers as u8))
                                 .unwrap();
 
@@ -173,6 +211,8 @@ impl StatusBarItem for BoardGen {
                     _ => panic!("should be impossible"),
                 }
             }
+
+            debug!("Board successfully pruned");
             game.unradified.clear();
             tx.send(BoardGenUpdate::FinalResult(Some(game.clone())))
                 .unwrap();
@@ -180,6 +220,9 @@ impl StatusBarItem for BoardGen {
     }
 
     fn update(&mut self, game: &mut SudokuGame) -> (String, macroquad::prelude::Color) {
+        let span = span!(Level::INFO, "BoardGenUpdate");
+        let _enter = span.enter();
+
         while let Ok(status_update) = self.rx.try_recv() {
             self.status = match &status_update {
                 BoardGenUpdate::FinalResult(Some(_)) => BoardGenStatus::Done,
@@ -188,6 +231,7 @@ impl StatusBarItem for BoardGen {
             };
 
             if let BoardGenUpdate::FinalResult(Some(new_game)) = status_update {
+                trace!("Received final result from BoardGen thread");
                 game.reset(new_game);
             }
         }
