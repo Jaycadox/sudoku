@@ -1,4 +1,7 @@
-use std::{sync::mpsc::Receiver, thread::JoinHandle};
+use std::{
+    sync::{atomic::AtomicBool, mpsc::Receiver, Arc},
+    thread::JoinHandle,
+};
 
 use macroquad::{
     color::{GRAY, GREEN, RED, YELLOW},
@@ -29,18 +32,20 @@ enum BoardGenStatus {
 }
 
 pub struct BoardGen {
-    _thread: JoinHandle<()>,
+    thread: JoinHandle<()>,
     rx: Receiver<BoardGenUpdate>,
     status: BoardGenStatus,
+    should_stop: Arc<AtomicBool>,
 }
 
 impl Default for BoardGen {
     fn default() -> Self {
         let (_, rx) = std::sync::mpsc::channel();
         Self {
-            _thread: std::thread::spawn(|| {}),
+            thread: std::thread::spawn(|| {}),
             rx,
             status: BoardGenStatus::NotStarted,
+            should_stop: Arc::new(AtomicBool::new(false)),
         }
     }
 }
@@ -53,6 +58,16 @@ impl StatusBarItem for BoardGen {
     fn activated(&mut self, _old_game: &mut SudokuGame, status_bar: &mut StatusBar) {
         let span = span!(Level::INFO, "BoardGenActivate");
         let _enter = span.enter();
+
+        if !self.thread.is_finished() {
+            self.should_stop
+                .store(true, std::sync::atomic::Ordering::Relaxed);
+            debug!("BoardGen thread is already active, signalling shutdown...");
+            return;
+        }
+
+        self.should_stop
+            .store(false, std::sync::atomic::Ordering::Relaxed);
 
         trace!(
             "Parsing requested number of remaining tiles: {}...",
@@ -128,7 +143,8 @@ impl StatusBarItem for BoardGen {
         self.rx = rx;
 
         let span = span.clone();
-        self._thread = std::thread::spawn(move || {
+        let should_stop = Arc::clone(&self.should_stop);
+        self.thread = std::thread::spawn(move || {
             let _parent_enter = span.enter();
 
             let span = span!(Level::INFO, "Prune");
@@ -144,7 +160,9 @@ impl StatusBarItem for BoardGen {
                 "Starting to prune filled board to match target ({})...",
                 num_tiles_target
             );
-            while total_numbers > num_tiles_target as usize {
+            while total_numbers > num_tiles_target as usize
+                && !should_stop.load(std::sync::atomic::Ordering::Relaxed)
+            {
                 let random_tile_idx = rand::thread_rng().gen_range(0..count);
                 if attempted_cells.contains(&random_tile_idx) {
                     continue;
