@@ -1,7 +1,9 @@
 use std::time::{Duration, Instant};
 
-use macroquad::{color::WHITE, time::get_fps};
+use macroquad::time::get_fps;
 use tracing::{debug, error, span, trace, Level};
+
+use crate::draw_helper::AppColour;
 
 use super::{StatusBar, StatusBarItem};
 
@@ -46,11 +48,15 @@ impl StatusBarItem for Fps {
     fn update(
         &mut self,
         _game: &mut crate::sudoku_game::SudokuGame,
+        status_bar: &mut StatusBar,
     ) -> (String, macroquad::prelude::Color) {
         if self.last_frame.is_none() {
             self.last_frame = Some(Instant::now());
 
-            return (format!("{:<4}", get_fps()), WHITE);
+            return (
+                format!("{:<4}", get_fps()),
+                status_bar.drawing.colour(AppColour::StatusBarItem),
+            );
         }
 
         let indicator = if let (Some(last_frame), Some(target)) = (self.last_frame, self.target) {
@@ -71,6 +77,9 @@ impl StatusBarItem for Fps {
 
         self.last_frame = Some(Instant::now());
         let output = format!("{}{}", get_fps(), indicator);
-        (format!("{:<4}", output), WHITE)
+        (
+            format!("{:<4}", output),
+            status_bar.drawing.colour(AppColour::StatusBarItem),
+        )
     }
 }

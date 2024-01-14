@@ -4,11 +4,12 @@ use std::{
 };
 
 use bit_vec::BitVec;
-use macroquad::{color::*, miniquad::KeyCode};
+use macroquad::miniquad::KeyCode;
 use threadpool::ThreadPool;
 use tracing::{error, span, trace, Level};
 
 use crate::{
+    draw_helper::AppColour,
     input_helper::{InputAction, InputActionContext},
     status_bar::{StatusBarItem, StatusBarItemOkData, StatusBarItemStatus},
     sudoku_game::SudokuGame,
@@ -66,9 +67,16 @@ impl StatusBarItem for SolveTask {
         "CpuSolve"
     }
 
-    fn update(&mut self, _game: &mut SudokuGame) -> (String, macroquad::prelude::Color) {
+    fn update(
+        &mut self,
+        _game: &mut SudokuGame,
+        status_bar: &mut StatusBar,
+    ) -> (String, macroquad::prelude::Color) {
         match self.get() {
-            TaskStatus::Done(_) => ("done".to_string(), GREEN),
+            TaskStatus::Done(_) => (
+                "done".to_string(),
+                status_bar.drawing.colour(AppColour::StatusBarItemOkay),
+            ),
             TaskStatus::Waiting(start_time) => (
                 format!(
                     "{:.1}s",
@@ -76,9 +84,14 @@ impl StatusBarItem for SolveTask {
                         .duration_since(*start_time)
                         .as_secs_f32()
                 ),
-                YELLOW,
+                status_bar
+                    .drawing
+                    .colour(AppColour::StatusBarItemInProgress),
             ),
-            TaskStatus::Failed => ("fail".to_string(), RED),
+            TaskStatus::Failed => (
+                "fail".to_string(),
+                status_bar.drawing.colour(AppColour::StatusBarItemError),
+            ),
         }
     }
 

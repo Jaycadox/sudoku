@@ -89,6 +89,14 @@ fn draw_sudoku(game: &mut SudokuGame, drawing: &DrawingSettings, status_bar: &mu
                 y_pad + s_padding + (y * rect_size),
             );
 
+            draw_rectangle(
+                start_x,
+                start_y,
+                rect_size,
+                rect_size,
+                drawing.colour(AppColour::BoardCellBackground),
+            );
+
             let unradified = game.unradified.contains(&(y as u8 * 9 + x as u8));
 
             if highlight_cells.contains(&(y as u32 * 9 + x as u32)) {
@@ -97,13 +105,19 @@ fn draw_sudoku(game: &mut SudokuGame, drawing: &DrawingSettings, status_bar: &mu
                     start_y,
                     rect_size,
                     rect_size,
-                    Color::new(1.00, 1.00, 1.00, 0.20),
+                    drawing.colour(AppColour::BoardHighlightedCellBackground),
                 );
             }
 
             if let Some((mx, my)) = mouse_pos {
                 if x == mx as f32 && y == my as f32 {
-                    draw_rectangle(start_x, start_y, rect_size, rect_size, DARKGRAY);
+                    draw_rectangle(
+                        start_x,
+                        start_y,
+                        rect_size,
+                        rect_size,
+                        drawing.colour(AppColour::BoardMousedCellBackground),
+                    );
                 }
             }
 
@@ -114,7 +128,7 @@ fn draw_sudoku(game: &mut SudokuGame, drawing: &DrawingSettings, status_bar: &mu
                         start_y,
                         rect_size,
                         rect_size,
-                        Color::new(1.00, 1.00, 1.00, 0.35),
+                        drawing.colour(AppColour::BoardSelectedCellBackground),
                     );
                     if unradified {
                         if let Some(ref mut value) = key {
@@ -192,15 +206,15 @@ fn draw_sudoku(game: &mut SudokuGame, drawing: &DrawingSettings, status_bar: &mu
                             let solved_cell = solved.cells[(y as usize, x as usize)];
                             let our_cell = game.cells[(y as usize, x as usize)];
                             if solved_cell == our_cell {
-                                Color::new(0.60, 0.60, 1.00, 1.00)
+                                drawing.colour(AppColour::BoardCorrectCell)
                             } else {
-                                Color::new(1.00, 0.60, 0.60, 1.00)
+                                drawing.colour(AppColour::BoardIncorrectCell)
                             }
                         }
-                        _ => Color::new(0.60, 0.60, 0.60, 1.00),
+                        _ => drawing.colour(AppColour::BoardUnknownCell),
                     }
                 } else {
-                    WHITE
+                    drawing.colour(AppColour::BoardRadifiedCell)
                 };
 
                 let _ = draw_and_measure_text(
@@ -218,7 +232,7 @@ fn draw_sudoku(game: &mut SudokuGame, drawing: &DrawingSettings, status_bar: &mu
                 rect_size,
                 rect_size,
                 get_normal_line_width(),
-                GRAY,
+                drawing.colour(AppColour::BoardLine),
             );
         }
     }
@@ -237,7 +251,7 @@ fn draw_sudoku(game: &mut SudokuGame, drawing: &DrawingSettings, status_bar: &mu
             rect_size * 3.0,
             rect_size * 3.0,
             get_box_line_width(),
-            WHITE,
+            drawing.colour(AppColour::BoardBox),
         );
     }
 
@@ -362,7 +376,7 @@ async fn main() {
     trace!("Loading drawing settings...");
     let drawing = DrawingSettings::default();
 
-    let mut status_bar = StatusBar::new();
+    let mut status_bar = StatusBar::new(&drawing);
     status_bar.enter_buffer_commands(&[&rc[..]]);
 
     let mut game = SudokuGame::new(Some(&mut status_bar));
@@ -371,7 +385,7 @@ async fn main() {
         let span = span!(Level::TRACE, "MainLoop");
         let _enter = span.enter();
 
-        clear_background(BLACK);
+        clear_background(drawing.colour(AppColour::Background));
         draw_sudoku(&mut game, &drawing, &mut status_bar);
 
         status_bar.draw(&mut game, &drawing);

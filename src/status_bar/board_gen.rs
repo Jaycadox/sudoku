@@ -3,14 +3,12 @@ use std::{
     thread::JoinHandle,
 };
 
-use macroquad::{
-    color::{GRAY, GREEN, RED, YELLOW},
-    rand::ChooseRandom,
-};
+use macroquad::rand::ChooseRandom;
 use rand::Rng;
 use tracing::{debug, error, span, trace, Level};
 
 use crate::{
+    draw_helper::AppColour,
     status_bar::cpu_solve::{self, SolveTask},
     sudoku_game::SudokuGame,
     task_status::TaskStatus,
@@ -241,7 +239,11 @@ impl StatusBarItem for BoardGen {
         });
     }
 
-    fn update(&mut self, game: &mut SudokuGame) -> (String, macroquad::prelude::Color) {
+    fn update(
+        &mut self,
+        game: &mut SudokuGame,
+        status_bar: &mut StatusBar,
+    ) -> (String, macroquad::prelude::Color) {
         let span = span!(Level::INFO, "BoardGenUpdate");
         let _enter = span.enter();
 
@@ -258,10 +260,24 @@ impl StatusBarItem for BoardGen {
             }
         }
         match self.status {
-            BoardGenStatus::Done => ("done ".to_string(), GREEN),
-            BoardGenStatus::Waiting(n) => (format!("{n}/81"), YELLOW),
-            BoardGenStatus::NotStarted => ("ready".to_string(), GRAY),
-            BoardGenStatus::Failed => ("fail ".to_string(), RED),
+            BoardGenStatus::Done => (
+                "done ".to_string(),
+                status_bar.drawing.colour(AppColour::StatusBarItemOkay),
+            ),
+            BoardGenStatus::Waiting(n) => (
+                format!("{n}/81"),
+                status_bar
+                    .drawing
+                    .colour(AppColour::StatusBarItemInProgress),
+            ),
+            BoardGenStatus::NotStarted => (
+                "ready".to_string(),
+                status_bar.drawing.colour(AppColour::StatusBarItem),
+            ),
+            BoardGenStatus::Failed => (
+                "fail ".to_string(),
+                status_bar.drawing.colour(AppColour::StatusBarItemError),
+            ),
         }
     }
 

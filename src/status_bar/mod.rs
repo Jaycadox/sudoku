@@ -60,9 +60,12 @@ pub trait StatusBarItem {
     fn name(&self) -> &'static str;
     fn activated(&mut self, game: &mut SudokuGame, status_bar: &mut StatusBar);
 
-    fn update(&mut self, game: &mut SudokuGame) -> (String, Color) {
+    fn update(&mut self, game: &mut SudokuGame, status_bar: &mut StatusBar) -> (String, Color) {
         let _ = game;
-        ("".to_string(), WHITE)
+        (
+            "".to_string(),
+            status_bar.drawing.colour(AppColour::StatusBarItemOkay),
+        )
     }
 
     fn board_init(&mut self, game: &mut SudokuGame, status_bar: &mut StatusBar) {
@@ -79,20 +82,22 @@ pub trait StatusBarItem {
     }
 }
 
-pub struct StatusBar {
+pub struct StatusBar<'a> {
     time_started: Instant,
     items: Vec<Box<dyn StatusBarItem>>,
     pub buffer: String,
+    pub drawing: &'a DrawingSettings,
     commands_queue: VecDeque<String>,
     current_command: Option<String>,
 }
 
-impl StatusBar {
-    pub fn new() -> Self {
+impl<'a> StatusBar<'a> {
+    pub fn new(drawing: &'a DrawingSettings) -> Self {
         Self {
             time_started: Instant::now(),
             items: vec![Box::<BuiltinAdd>::default()],
             buffer: String::new(),
+            drawing,
             commands_queue: VecDeque::new(),
             current_command: None,
         }
@@ -363,7 +368,7 @@ impl StatusBar {
             start_y,
             bar_width,
             bar_height,
-            Color::from_rgba(20, 20, 20, 255),
+            drawing.colour(AppColour::StatusBar),
         );
 
         let mut cursor_x = 20.0;
@@ -371,27 +376,27 @@ impl StatusBar {
         let font_size = status_bar_height * 0.9;
         let cursor_y = start_y + (font_size / 1.25);
 
-        for (i, item) in self
-            .items
-            .iter_mut()
-            .filter(|x| !matches!(x.display_mode(), StatusBarDisplayMode::None))
-            .enumerate()
-        {
+        for i in 0..self.items.len() {
+            let item = self.items.get_mut(i).unwrap();
+            if matches!(item.display_mode(), StatusBarDisplayMode::None) {
+                continue;
+            }
+
             let mut dummy_item: Box<dyn StatusBarItem + 'static> = Box::<Dummy>::default();
 
             let display_mode = item.display_mode();
 
             std::mem::swap(item, &mut dummy_item);
-            let (mut item, dummy_item) = (dummy_item, item);
+            let mut item = dummy_item;
 
             let font_color =
                 if InputAction::is_function_down(i as u8 + 1, InputActionContext::Generic) {
-                    Color::from_rgba(200, 200, 255, 255)
+                    drawing.colour(AppColour::StatusBarItemSelected)
                 } else {
-                    WHITE
+                    drawing.colour(AppColour::StatusBarItem)
                 };
 
-            let (text, color) = item.update(game);
+            let (text, color) = item.update(game, self);
 
             if matches!(
                 display_mode,
@@ -428,18 +433,18 @@ impl StatusBar {
                 cursor_x,
                 height,
                 get_normal_line_width(),
-                Color::from_rgba(30, 30, 30, 255),
+                drawing.colour(AppColour::StatusBarSeparator),
             );
             cursor_x += 16.0;
-            std::mem::swap(&mut item, dummy_item);
+            self.items[i] = item;
         }
 
         // Now that each status bar item has been drawn, we can start to draw the buffer input
 
         let color = if InputAction::is_key_down(KeyCode::LeftControl, InputActionContext::Buffer) {
-            YELLOW
+            drawing.colour(AppColour::StatusBarBufferEdit)
         } else {
-            WHITE
+            drawing.colour(AppColour::StatusBarItem)
         };
 
         let bounds = draw_and_measure_text(
@@ -473,7 +478,7 @@ impl StatusBar {
             cursor_x,
             height,
             get_normal_line_width(),
-            Color::from_rgba(30, 30, 30, 255),
+            drawing.colour(AppColour::StatusBarSeparator),
         );
 
         cursor_x += 16.0;
@@ -487,8 +492,14 @@ impl StatusBar {
 
         let queue_string = format!("{}: [{}]", commands_queue.len(), commands_queue.join(", "));
         if !commands_queue.is_empty() {
-            let _gobounds =
-                draw_and_measure_text(drawing, &queue_string, cursor_x, cursor_y, font_size, WHITE);
+            let _gobounds = draw_and_measure_text(
+                drawing,
+                &queue_string,
+                cursor_x,
+                cursor_y,
+                font_size,
+                drawing.colour(AppColour::StatusBarItem),
+            );
 
             //cursor_x += bounds.0 + 3.0;
         }
