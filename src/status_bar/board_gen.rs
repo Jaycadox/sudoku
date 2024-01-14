@@ -41,12 +41,16 @@ pub struct BoardGen {
 impl Default for BoardGen {
     fn default() -> Self {
         let (_, rx) = std::sync::mpsc::channel();
-        Self {
+        let gen = Self {
             thread: std::thread::spawn(|| {}),
             rx,
             status: BoardGenStatus::NotStarted,
             should_stop: Arc::new(AtomicBool::new(false)),
-        }
+        };
+
+        while !gen.thread.is_finished() {}
+
+        gen
     }
 }
 
