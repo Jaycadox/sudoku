@@ -16,6 +16,7 @@ use crate::{
 use self::{add::BuiltinAdd, dummy::Dummy};
 
 mod add;
+mod background_image;
 pub mod board_gen;
 pub mod colour_overwrite;
 pub mod cpu_solve;
