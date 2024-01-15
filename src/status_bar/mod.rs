@@ -57,6 +57,18 @@ pub enum StatusBarDisplayMode {
     None,
 }
 
+pub struct DrawHookData {
+    pub x: f32,
+    pub y: f32,
+    pub w: f32,
+    pub h: f32,
+}
+
+pub enum DrawHookAction {
+    Continue,
+    Stop,
+}
+
 pub trait StatusBarItem {
     fn name(&self) -> &'static str;
     fn activated(&mut self, game: &mut SudokuGame, status_bar: &mut StatusBar);
@@ -80,6 +92,11 @@ pub trait StatusBarItem {
 
     fn display_mode(&self) -> StatusBarDisplayMode {
         StatusBarDisplayMode::Normal
+    }
+
+    fn background_draw_hook(&self, data: &DrawHookData) -> DrawHookAction {
+        let _ = data;
+        DrawHookAction::Continue
     }
 }
 
@@ -109,6 +126,10 @@ impl<'a> StatusBar<'a> {
         T: StatusBarItem + Default + 'static,
     {
         self.items.push(Box::<T>::default());
+    }
+
+    pub fn items(&self) -> impl Iterator<Item = &dyn StatusBarItem> {
+        self.items.iter().map(|x| x.as_ref())
     }
 
     pub fn item_with_name(&mut self, name: &str) -> Option<&mut dyn StatusBarItem> {

@@ -11,6 +11,7 @@ use macroquad::miniquad::window::screen_size;
 use macroquad::prelude::*;
 use status_bar::{StatusBar, StatusBarItemStatus};
 use std::{collections::HashSet, io::Write};
+use status_bar::{DrawHookAction, DrawHookData, StatusBar, StatusBarItemStatus};
 use sudoku_game::SudokuGame;
 use tracing::{debug, error, info, span, trace, Level};
 
@@ -25,6 +26,21 @@ fn draw_sudoku(game: &mut SudokuGame, drawing: &DrawingSettings, status_bar: &mu
     }
 
     let (mut width, mut height) = screen_size();
+
+    let draw_hook_data = DrawHookData {
+        x: 0.0,
+        y: 0.0,
+        w: width,
+        h: height,
+    };
+
+    for item in status_bar.items() {
+        let resp = item.background_draw_hook(&draw_hook_data);
+        if let DrawHookAction::Stop = resp {
+            break;
+        }
+    }
+
     height -= get_status_bar_height();
     let padding = 30.0;
     let s_padding = padding / 2.0;
