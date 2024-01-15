@@ -210,7 +210,29 @@ fn draw_sudoku(game: &mut SudokuGame, drawing: &DrawingSettings, status_bar: &mu
                 }
             }
 
-            if *cell != 0 {
+            let draw_hook_data = DrawHookData {
+                x: start_x,
+                y: start_y,
+                w: rect_size,
+                h: rect_size,
+            };
+
+            let mut cancelled = false;
+            for item in status_bar.items() {
+                if let DrawHookAction::Stop = item.cell_text_draw_hook(
+                    drawing,
+                    game,
+                    SudokuGame::xy_pos_to_idx(x as u32, y as u32, game.cells.shape()[1] as u32)
+                        as u8,
+                    *cell,
+                    &draw_hook_data,
+                ) {
+                    cancelled = true;
+                    break;
+                }
+            }
+
+            if *cell != 0 && !cancelled {
                 let number_size = measure_text(&format!("{cell}"), None, rect_size as u16, 1.0);
                 let text_col = if unradified {
                     let solver_value = status_bar.item_with_name("CpuSolve").map(|x| x.status());

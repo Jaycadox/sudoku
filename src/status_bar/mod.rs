@@ -23,6 +23,7 @@ pub mod cpu_solve;
 mod dummy;
 pub mod fps;
 pub mod on_board_init;
+pub mod pencil_marks;
 
 #[allow(dead_code)]
 pub enum StatusBarItemOkData<'a> {
@@ -98,6 +99,21 @@ pub trait StatusBarItem {
 
     fn background_draw_hook(&self, data: &DrawHookData) -> DrawHookAction {
         let _ = data;
+        DrawHookAction::Continue
+    }
+
+    fn cell_text_draw_hook(
+        &self,
+        drawing: &DrawingSettings,
+        game: &SudokuGame,
+        index: u8,
+        value: u8,
+        data: &DrawHookData,
+    ) -> DrawHookAction {
+        let _ = data;
+        let _ = value;
+        let _ = index;
+        let _ = drawing;
         DrawHookAction::Continue
     }
 }

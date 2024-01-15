@@ -129,7 +129,7 @@ pub fn solve(game: &SudokuGame) -> Option<SudokuGame> {
     solve_inner(&mut game, 0, pool, 0)
 }
 
-fn get_cells_in_box(game: &SudokuGame, box_pos: (u32, u32)) -> Vec<u32> {
+pub fn get_cells_in_box(game: &SudokuGame, box_pos: (u32, u32)) -> Vec<u32> {
     let size = game.cells.shape()[1];
     let (start_x, start_y) = (box_pos.0 * 3, box_pos.1 * 3);
 
@@ -149,7 +149,7 @@ fn get_cells_in_box(game: &SudokuGame, box_pos: (u32, u32)) -> Vec<u32> {
     cells
 }
 
-fn get_cells_in_col(game: &SudokuGame, col: u32) -> Vec<u32> {
+pub fn get_cells_in_col(game: &SudokuGame, col: u32) -> Vec<u32> {
     let size = game.cells.shape()[1];
     let mut cells = Vec::with_capacity(9);
 
@@ -163,7 +163,7 @@ fn get_cells_in_col(game: &SudokuGame, col: u32) -> Vec<u32> {
     cells
 }
 
-fn get_cells_in_row(game: &SudokuGame, row: u32) -> Vec<u32> {
+pub fn get_cells_in_row(game: &SudokuGame, row: u32) -> Vec<u32> {
     let size = game.cells.shape()[1];
     let mut cells = Vec::with_capacity(9);
 
