@@ -382,9 +382,6 @@ impl<'a> StatusBar<'a> {
 
         for i in 0..self.items.len() {
             let item = self.items.get_mut(i).unwrap();
-            if matches!(item.display_mode(), StatusBarDisplayMode::None) {
-                continue;
-            }
 
             let mut dummy_item: Box<dyn StatusBarItem + 'static> = Box::<Dummy>::default();
 
@@ -392,6 +389,12 @@ impl<'a> StatusBar<'a> {
 
             std::mem::swap(item, &mut dummy_item);
             let mut item = dummy_item;
+
+            if matches!(item.display_mode(), StatusBarDisplayMode::None) {
+                let _ = item.update(game, self);
+                self.items[i] = item;
+                continue;
+            }
 
             let font_color =
                 if InputAction::is_function_down(i as u8 + 1, InputActionContext::Generic) {
