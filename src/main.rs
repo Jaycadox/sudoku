@@ -1,19 +1,18 @@
+mod config;
 mod draw_helper;
 mod input_helper;
 mod status_bar;
 mod sudoku_game;
 mod task_status;
 
-use directories::ProjectDirs;
 use draw_helper::*;
 use input_helper::*;
 use macroquad::miniquad::window::screen_size;
 use macroquad::prelude::*;
-use status_bar::{StatusBar, StatusBarItemStatus};
-use std::{collections::HashSet, io::Write};
 use status_bar::{DrawHookAction, DrawHookData, StatusBar, StatusBarItemStatus};
+use std::collections::HashSet;
 use sudoku_game::SudokuGame;
-use tracing::{debug, error, info, span, trace, Level};
+use tracing::{debug, span, trace, Level};
 
 fn draw_sudoku(game: &mut SudokuGame, drawing: &DrawingSettings, status_bar: &mut StatusBar) {
     let span = span!(Level::INFO, "DrawSudoku");
@@ -345,34 +344,6 @@ fn window_conf() -> Conf {
     }
 }
 
-const DEFAULT_RC: &str =
-    "BuiltinAdd CpuSolve BoardGen Fps OnBoardInit & OnBoardInit CpuSolve run & BoardGen 30";
-
-fn get_rc() -> String {
-    let span = span!(Level::INFO, "ConfigLoad");
-    let _enter = span.enter();
-
-    trace!("Attempting to load/create config...");
-    ProjectDirs::from("io.github", "Jaycadox", "Sudoku")
-        .and_then(|dirs| {
-            let config_dir = dirs.config_dir();
-            let config_file = config_dir.join(".sudokurc").to_path_buf();
-            info!("Loading config from: {}", config_file.display());
-            if !std::path::Path::exists(&config_file) {
-                debug!("Config doesn't exist, generating default config...");
-                std::fs::create_dir_all(config_dir).ok()?;
-                let mut f = std::fs::File::create(&config_file).ok()?;
-                f.write_all(DEFAULT_RC.as_bytes()).ok()?;
-            }
-
-            std::fs::read_to_string(config_file).ok()
-        })
-        .unwrap_or_else(|| {
-            error!("Failed to load config from file, loading default config from memory...");
-            DEFAULT_RC.to_string()
-        })
-}
-
 #[macroquad::main(window_conf)]
 async fn main() {
     #[cfg(debug_assertions)]
@@ -387,7 +358,7 @@ async fn main() {
 
     tracing::subscriber::set_global_default(subscriber).unwrap();
 
-    let rc = get_rc();
+    let rc = config::get_rc();
 
     trace!("Loading drawing settings...");
     let drawing = DrawingSettings::default();
