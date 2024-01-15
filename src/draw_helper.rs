@@ -1,4 +1,10 @@
-use std::{cell::RefCell, collections::HashMap, rc::Rc, str::FromStr, sync::Mutex};
+use std::{
+    cell::{Cell, RefCell},
+    collections::HashMap,
+    rc::Rc,
+    str::FromStr,
+    sync::Mutex,
+};
 
 use macroquad::{
     color::Color,
@@ -26,6 +32,9 @@ pub fn get_box_line_width() -> f32 {
 pub struct DrawingSettings {
     font: Rc<RefCell<Font>>,
     colour_overrides: Rc<Mutex<HashMap<AppColour, Color>>>,
+    padding_target: Cell<f32>,
+    padding_start: Cell<f32>,
+    padding_speed: Cell<f32>,
 }
 
 #[derive(Debug, Eq, Hash, PartialEq)]
@@ -86,6 +95,9 @@ impl Default for DrawingSettings {
                 text::load_ttf_font_from_bytes(include_bytes!("./TWN19.ttf")).unwrap(),
             )),
             colour_overrides: Rc::new(Mutex::new(HashMap::default())),
+            padding_target: Cell::new(30.0),
+            padding_start: Cell::new(30.0),
+            padding_speed: Cell::new(12.0),
         }
     }
 }
@@ -123,6 +135,30 @@ impl DrawingSettings {
             AppColour::BoardIncorrectCell => Color::from_rgba(255, 153, 153, 255),
             AppColour::BoardUnknownCell => Color::from_rgba(213, 213, 213, 255),
         }
+    }
+
+    pub fn padding_target(&self) -> f32 {
+        self.padding_target.get()
+    }
+
+    pub fn padding_start(&self) -> f32 {
+        self.padding_start.get()
+    }
+
+    pub fn padding_speed(&self) -> f32 {
+        self.padding_speed.get()
+    }
+
+    pub fn set_padding_target(&self, val: f32) {
+        self.padding_target.set(val)
+    }
+
+    pub fn set_padding_start(&self, val: f32) {
+        self.padding_start.set(val)
+    }
+
+    pub fn set_padding_speed(&self, val: f32) {
+        self.padding_speed.set(val)
     }
 }
 

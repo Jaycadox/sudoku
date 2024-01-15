@@ -24,6 +24,24 @@ fn draw_sudoku(game: &mut SudokuGame, drawing: &DrawingSettings, status_bar: &mu
         game.reset_signalled = false;
     }
 
+    fn lerp(start: f32, end: f32, t: f32) -> f32 {
+        start * (1.0 - t) + end * t
+    }
+
+    game.padding_progress = f32::min(
+        1.0,
+        lerp(
+            game.padding_progress,
+            1.0,
+            drawing.padding_speed() * get_frame_time(),
+        ),
+    );
+    let padding = lerp(
+        drawing.padding_start(),
+        drawing.padding_target(),
+        game.padding_progress,
+    );
+
     let (mut width, mut height) = screen_size();
 
     let draw_hook_data = DrawHookData {
@@ -41,7 +59,6 @@ fn draw_sudoku(game: &mut SudokuGame, drawing: &DrawingSettings, status_bar: &mu
     }
 
     height -= get_status_bar_height();
-    let padding = 30.0;
     let s_padding = padding / 2.0;
     width -= padding; // padding
     height -= padding; // padding

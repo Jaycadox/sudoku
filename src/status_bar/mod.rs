@@ -23,6 +23,7 @@ pub mod cpu_solve;
 mod dummy;
 pub mod fps;
 pub mod on_board_init;
+mod padding;
 pub mod pencil_marks;
 
 #[allow(dead_code)]
