@@ -215,7 +215,10 @@ impl<'a> StatusBar<'a> {
             if let Some(item) = self.item_with_name(current_command) {
                 let item_name = item.name();
                 match item.status() {
-                    StatusBarItemStatus::Waiting => return Ok(()),
+                    // Commands won't wait for eachother, this
+                    // means the application loads faster, but I might in the future add a
+                    // syntactic way of specifying this behaviour
+                    StatusBarItemStatus::Waiting => {}
                     x => {
                         trace!(
                             "Command with name '{}' finished with status: {}",
