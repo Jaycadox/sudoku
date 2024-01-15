@@ -65,6 +65,7 @@ pub struct DrawHookData {
     pub h: f32,
 }
 
+#[allow(dead_code)]
 pub enum DrawHookAction {
     Continue,
     Stop,
