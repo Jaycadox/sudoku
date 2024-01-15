@@ -8,6 +8,7 @@ pub struct SudokuGame {
     pub unradified: Vec<u8>,
     pub selected_cell: Option<(u32, u32)>,
     pub reset_signalled: bool,
+    pub padding_progress: f32,
 }
 
 impl Clone for SudokuGame {
@@ -17,6 +18,7 @@ impl Clone for SudokuGame {
             unradified: self.unradified.clone(),
             selected_cell: self.selected_cell,
             reset_signalled: self.reset_signalled,
+            padding_progress: 0.0,
         }
     }
 }
@@ -51,6 +53,7 @@ impl SudokuGame {
             unradified,
             selected_cell: None,
             reset_signalled: false,
+            padding_progress: 0.0,
         };
 
         if let Some(status_bar) = status_bar {
