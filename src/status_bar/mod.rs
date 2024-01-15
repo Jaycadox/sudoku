@@ -402,7 +402,7 @@ impl<'a> StatusBar<'a> {
 
         let font_size = status_bar_height * 0.9;
         let cursor_y = start_y + (font_size / 1.25);
-
+        let mut visible_index = 1;
         for i in 0..self.items.len() {
             let item = self.items.get_mut(i).unwrap();
 
@@ -419,13 +419,16 @@ impl<'a> StatusBar<'a> {
                 continue;
             }
 
-            let font_color =
-                if InputAction::is_function_down(i as u8 + 1, InputActionContext::Generic) {
-                    drawing.colour(AppColour::StatusBarItemSelected)
-                } else {
-                    drawing.colour(AppColour::StatusBarItem)
-                };
+            let font_color = if InputAction::is_function_down(
+                visible_index as u8,
+                InputActionContext::Generic,
+            ) {
+                drawing.colour(AppColour::StatusBarItemSelected)
+            } else {
+                drawing.colour(AppColour::StatusBarItem)
+            };
 
+            visible_index += 1;
             let (text, color) = item.update(game, self);
 
             if matches!(
