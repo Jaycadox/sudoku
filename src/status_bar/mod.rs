@@ -320,12 +320,14 @@ impl<'a> StatusBar<'a> {
         self.commands_queue.append(&mut commands);
     }
 
-    pub fn draw(&mut self, game: &mut SudokuGame, drawing: &DrawingSettings) {
-        self.process_inputs(game);
+    pub fn draw(&mut self, game: &mut SudokuGame, drawing: &DrawingSettings) -> bool {
+        let should_continue = self.process_inputs(game);
         self.render(game, drawing);
+
+        should_continue
     }
 
-    fn process_inputs(&mut self, game: &mut SudokuGame) {
+    fn process_inputs(&mut self, game: &mut SudokuGame) -> bool {
         let span = span!(Level::INFO, "ProcessStatusBar");
         let _enter = span.enter();
 
@@ -378,6 +380,9 @@ impl<'a> StatusBar<'a> {
             Some(InputAction::EnterBuffer) => {
                 self.enter_buffer_commands(&[&self.buffer.clone()]);
             }
+            Some(InputAction::HardReset) => {
+                return false;
+            }
             _ => {}
         };
 
@@ -396,6 +401,8 @@ impl<'a> StatusBar<'a> {
             Some(InputActionChar::Clear) => self.buffer.clear(),
             None => {}
         };
+
+        true
     }
 
     fn render(&mut self, game: &mut SudokuGame, drawing: &DrawingSettings) {

@@ -23,3 +23,4 @@ At first launch, you will be met with a default Sudoku board and a status bar at
 | Space                       | Auto fills the selected tile with the only legal move if possible |
 | Left control + Left alt + V | Pastes into buffer                                                |
 | Enter                       | Runs the command in the buffer                                    |
+| Left control + LShift + tab | Hard reset, reloads config                                        |

@@ -12,7 +12,7 @@ use macroquad::prelude::*;
 use status_bar::{DrawHookAction, DrawHookData, StatusBar, StatusBarItemStatus};
 use std::collections::HashSet;
 use sudoku_game::SudokuGame;
-use tracing::{debug, span, trace, Level};
+use tracing::{debug, span, trace, warn, Level};
 
 fn draw_sudoku(game: &mut SudokuGame, drawing: &DrawingSettings, status_bar: &mut StatusBar) {
     let span = span!(Level::INFO, "DrawSudoku");
@@ -396,25 +396,31 @@ async fn main() {
         .finish();
 
     tracing::subscriber::set_global_default(subscriber).unwrap();
+    'outer: loop {
+        let rc = config::get_rc();
 
-    let rc = config::get_rc();
+        trace!("Loading drawing settings...");
+        let drawing = DrawingSettings::default();
 
-    trace!("Loading drawing settings...");
-    let drawing = DrawingSettings::default();
+        let mut status_bar = StatusBar::new(&drawing);
+        status_bar.enter_buffer_commands(&[&rc[..]]);
 
-    let mut status_bar = StatusBar::new(&drawing);
-    status_bar.enter_buffer_commands(&[&rc[..]]);
+        let mut game = SudokuGame::new(Some(&mut status_bar));
 
-    let mut game = SudokuGame::new(Some(&mut status_bar));
+        loop {
+            let span = span!(Level::TRACE, "MainLoop");
+            let _enter = span.enter();
 
-    loop {
-        let span = span!(Level::TRACE, "MainLoop");
-        let _enter = span.enter();
+            clear_background(drawing.colour(AppColour::Background));
+            draw_sudoku(&mut game, &drawing, &mut status_bar);
 
-        clear_background(drawing.colour(AppColour::Background));
-        draw_sudoku(&mut game, &drawing, &mut status_bar);
+            let should_continue = status_bar.draw(&mut game, &drawing);
+            next_frame().await;
 
-        status_bar.draw(&mut game, &drawing);
-        next_frame().await;
+            if !should_continue {
+                warn!("Hard resetting...");
+                continue 'outer;
+            }
+        }
     }
 }

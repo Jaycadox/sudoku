@@ -19,6 +19,7 @@ pub enum InputAction {
     NumberEntered(u8),
     Function(u8),
     Reset,
+    HardReset,
     Clear,
     AutoPlay,
     MoveUp,
@@ -45,7 +46,13 @@ impl TryFrom<KeyCode> for InputAction {
             KeyCode::Key9 => InputAction::NumberEntered(9),
             KeyCode::Backspace | KeyCode::Key0 | KeyCode::Delete => InputAction::Clear,
             KeyCode::Space => InputAction::AutoPlay,
-            KeyCode::Tab => InputAction::Reset,
+            KeyCode::Tab => {
+                if is_key_down(KeyCode::LeftShift) {
+                    InputAction::HardReset
+                } else {
+                    InputAction::Reset
+                }
+            }
             KeyCode::F1 => InputAction::Function(1),
             KeyCode::F2 => InputAction::Function(2),
             KeyCode::F3 => InputAction::Function(3),
