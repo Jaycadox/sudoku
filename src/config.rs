@@ -25,9 +25,9 @@ pub fn get_file(name: &str, default: Option<&[u8]>) -> Option<Vec<u8>> {
     info!("Loading file from: {}", file_path.display());
     if !std::path::Path::exists(&file_path) {
         debug!("File doesn't exist, attempting to create default...");
-        std::fs::create_dir_all(&file_path)
+        let _ = std::fs::create_dir_all(file_path.parent().expect("Should have parent"));
+        std::fs::File::create(&file_path)
             .ok()
-            .and_then(|_| std::fs::File::create(&file_path).ok())
             .and_then(|mut f| f.write_all(default?).ok())?;
     }
 
