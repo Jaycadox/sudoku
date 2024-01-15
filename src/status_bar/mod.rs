@@ -114,6 +114,7 @@ pub trait StatusBarItem {
         let _ = value;
         let _ = index;
         let _ = drawing;
+        let _ = game;
         DrawHookAction::Continue
     }
 }

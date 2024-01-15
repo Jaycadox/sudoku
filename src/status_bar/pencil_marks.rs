@@ -1,11 +1,5 @@
-use macroquad::{
-    color::{Color, WHITE},
-    shapes::draw_rectangle,
-    text::draw_text,
-};
-
 use crate::{
-    draw_helper::{draw_and_measure_text, get_normal_line_width, AppColour, DrawingSettings},
+    draw_helper::{draw_and_measure_text, AppColour, DrawingSettings},
     sudoku_game::SudokuGame,
 };
 
