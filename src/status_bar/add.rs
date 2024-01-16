@@ -1,8 +1,8 @@
 use tracing::{span, trace, Level};
 
 use crate::status_bar::{
-    background_image::BackgroundImage, colour_overwrite::ColourOverwrite, padding::Padding,
-    pencil_marks::PencilMarks,
+    background_image::BackgroundImage, colour_overwrite::ColourOverwrite, font::Font,
+    padding::Padding, pencil_marks::PencilMarks,
 };
 
 use super::{
@@ -42,6 +42,7 @@ impl StatusBarItem for BuiltinAdd {
                 "backgroundimage" => status_bar.add::<BackgroundImage>(),
                 "pencilmarks" => status_bar.add::<PencilMarks>(),
                 "padding" => status_bar.add::<Padding>(),
+                "font" => status_bar.add::<Font>(),
                 _ => {
                     status_bar.buffer = "BuiltinAdd: could not find item".to_string();
                     break;

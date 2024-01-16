@@ -21,6 +21,7 @@ pub mod board_gen;
 pub mod colour_overwrite;
 pub mod cpu_solve;
 mod dummy;
+mod font;
 pub mod fps;
 pub mod on_board_init;
 mod padding;
@@ -426,7 +427,7 @@ impl<'a> StatusBar<'a> {
         let mut cursor_x = 20.0;
 
         let font_size = status_bar_height * 0.9;
-        let cursor_y = start_y + (font_size / 1.25);
+        let cursor_y = start_y;
         let mut visible_index = 1;
         for i in 0..self.items.len() {
             let item = self.items.get_mut(i).unwrap();
@@ -472,6 +473,8 @@ impl<'a> StatusBar<'a> {
                     cursor_y,
                     font_size,
                     font_color,
+                    None,
+                    Some(status_bar_height),
                 );
                 cursor_x += bounds.0 + 8.0;
             }
@@ -479,8 +482,16 @@ impl<'a> StatusBar<'a> {
                 display_mode,
                 StatusBarDisplayMode::Normal | StatusBarDisplayMode::StatusOnly
             ) {
-                let bounds =
-                    draw_and_measure_text(drawing, &text, cursor_x, cursor_y, font_size, color);
+                let bounds = draw_and_measure_text(
+                    drawing,
+                    &text,
+                    cursor_x,
+                    cursor_y,
+                    font_size,
+                    color,
+                    None,
+                    Some(status_bar_height),
+                );
                 cursor_x += bounds.0;
             }
 
@@ -512,6 +523,8 @@ impl<'a> StatusBar<'a> {
             cursor_y,
             font_size,
             color,
+            None,
+            Some(status_bar_height),
         );
 
         cursor_x += bounds.0 + 3.0;
@@ -557,6 +570,8 @@ impl<'a> StatusBar<'a> {
                 cursor_y,
                 font_size,
                 drawing.colour(AppColour::StatusBarItem),
+                None,
+                Some(status_bar_height),
             );
 
             //cursor_x += bounds.0 + 3.0;

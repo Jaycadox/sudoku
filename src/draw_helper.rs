@@ -1,13 +1,8 @@
-use std::{
-    cell::{Cell, RefCell},
-    collections::HashMap,
-    rc::Rc,
-    str::FromStr,
-    sync::Mutex,
-};
+use std::{cell::Cell, collections::HashMap, rc::Rc, str::FromStr, sync::Mutex};
 
 use macroquad::{
     color::Color,
+    shapes::draw_rectangle,
     text::{self, draw_text_ex, measure_text, Font, TextParams},
     window::screen_height,
 };
@@ -30,11 +25,12 @@ pub fn get_box_line_width() -> f32 {
 
 #[derive(Clone)]
 pub struct DrawingSettings {
-    font: Rc<RefCell<Font>>,
+    font: Rc<Mutex<Font>>,
     colour_overrides: Rc<Mutex<HashMap<AppColour, Color>>>,
     padding_target: Cell<f32>,
     padding_start: Cell<f32>,
     padding_speed: Cell<f32>,
+    font_size: Cell<f32>,
 }
 
 #[derive(Debug, Eq, Hash, PartialEq)]
@@ -91,18 +87,23 @@ impl FromStr for AppColour {
 impl Default for DrawingSettings {
     fn default() -> Self {
         Self {
-            font: Rc::new(RefCell::new(
-                text::load_ttf_font_from_bytes(include_bytes!("./TWN19.ttf")).unwrap(),
+            font: Rc::new(Mutex::new(
+                Self::font_from_bytes(include_bytes!("./TWN19.ttf")).unwrap(),
             )),
             colour_overrides: Rc::new(Mutex::new(HashMap::default())),
             padding_target: Cell::new(30.0),
             padding_start: Cell::new(30.0),
             padding_speed: Cell::new(12.0),
+            font_size: Cell::new(1.0),
         }
     }
 }
 
 impl DrawingSettings {
+    pub fn font_from_bytes(bytes: &[u8]) -> Result<Font, macroquad::Error> {
+        text::load_ttf_font_from_bytes(bytes)
+    }
+
     pub fn add_override(&self, colour: AppColour, replaced_with: Color) {
         let mut overrides = self.colour_overrides.lock().unwrap();
         overrides.insert(colour, replaced_with);
@@ -160,24 +161,52 @@ impl DrawingSettings {
     pub fn set_padding_speed(&self, val: f32) {
         self.padding_speed.set(val)
     }
+
+    pub fn set_font(&self, font: Font) {
+        let mut f = self.font.lock().unwrap();
+        *f = font;
+    }
+
+    pub fn set_font_size(&self, size: f32) {
+        self.font_size.set(size);
+    }
 }
 
 pub fn draw_and_measure_text(
     drawing: &DrawingSettings,
     text: &str,
-    x: f32,
-    y: f32,
+    mut x: f32,
+    mut y: f32,
     font_size: f32,
     color: Color,
+    width: Option<f32>,
+    height: Option<f32>,
 ) -> (f32, f32) {
-    let font = drawing.font.borrow();
+    let font = drawing.font.lock().unwrap();
+    let font_size_mul = drawing.font_size.get();
     let params = TextParams {
         font: Some(&*font),
         color,
-        font_size: font_size as u16,
+        font_size: (font_size * font_size_mul) as u16,
         ..Default::default()
     };
-    draw_text_ex(text, x, y, params);
-    let dim = measure_text(text, Some(&*font), font_size as u16, 1.0);
+
+    let mut dim = measure_text(text, Some(&*font), (font_size * font_size_mul) as u16, 1.0);
+
+    if let Some(width) = width {
+        x += width / 2.0;
+        x -= dim.width / 2.0;
+    }
+
+    let mut add_height = dim.height;
+    if let Some(height) = height {
+        y += height / 2.0;
+        y -= dim.height / 2.0;
+    } else {
+        add_height = 0.0;
+    }
+
+    //draw_rectangle(x, y, dim.width, dim.height, macroquad::color::RED);
+    draw_text_ex(text, x, y + add_height, params);
     (dim.width, dim.height)
 }

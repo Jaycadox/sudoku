@@ -274,10 +274,12 @@ fn draw_sudoku(game: &mut SudokuGame, drawing: &DrawingSettings, status_bar: &mu
                 let _ = draw_and_measure_text(
                     drawing,
                     &format!("{cell}"),
-                    start_x + rect_size / 2.0 - number_size.width / 2.0,
-                    start_y + rect_size / 2.0 - -number_size.height / 2.0,
+                    start_x,
+                    start_y,
                     rect_size,
                     text_col,
+                    Some(rect_size),
+                    Some(rect_size),
                 );
             }
             draw_rectangle_lines(

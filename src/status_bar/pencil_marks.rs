@@ -77,6 +77,8 @@ impl StatusBarItem for PencilMarks {
                     y_cursor,
                     data.w / 2.5,
                     drawing.colour(AppColour::BoardUnknownCell),
+                    None,
+                    None,
                 );
                 y_cursor += (data.w / 5.0) + padding;
             }
