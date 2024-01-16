@@ -250,7 +250,6 @@ fn draw_sudoku(game: &mut SudokuGame, drawing: &DrawingSettings, status_bar: &mu
             }
 
             if *cell != 0 && !cancelled {
-                let number_size = measure_text(&format!("{cell}"), None, rect_size as u16, 1.0);
                 let text_col = if unradified {
                     let solver_value = status_bar.item_with_name("CpuSolve").map(|x| x.status());
                     match solver_value {
@@ -278,8 +277,7 @@ fn draw_sudoku(game: &mut SudokuGame, drawing: &DrawingSettings, status_bar: &mu
                     start_y,
                     rect_size,
                     text_col,
-                    Some(rect_size),
-                    Some(rect_size),
+                    (Some(rect_size), Some(rect_size)),
                 );
             }
             draw_rectangle_lines(

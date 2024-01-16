@@ -473,8 +473,7 @@ impl<'a> StatusBar<'a> {
                     cursor_y,
                     font_size,
                     font_color,
-                    None,
-                    Some(status_bar_height),
+                    (None, Some(status_bar_height)),
                 );
                 cursor_x += bounds.0 + 8.0;
             }
@@ -489,8 +488,7 @@ impl<'a> StatusBar<'a> {
                     cursor_y,
                     font_size,
                     color,
-                    None,
-                    Some(status_bar_height),
+                    (None, Some(status_bar_height)),
                 );
                 cursor_x += bounds.0;
             }
@@ -523,8 +521,7 @@ impl<'a> StatusBar<'a> {
             cursor_y,
             font_size,
             color,
-            None,
-            Some(status_bar_height),
+            (None, Some(status_bar_height)),
         );
 
         cursor_x += bounds.0 + 3.0;
@@ -570,8 +567,7 @@ impl<'a> StatusBar<'a> {
                 cursor_y,
                 font_size,
                 drawing.colour(AppColour::StatusBarItem),
-                None,
-                Some(status_bar_height),
+                (None, Some(status_bar_height)),
             );
 
             //cursor_x += bounds.0 + 3.0;

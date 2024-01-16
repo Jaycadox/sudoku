@@ -2,7 +2,6 @@ use std::{cell::Cell, collections::HashMap, rc::Rc, str::FromStr, sync::Mutex};
 
 use macroquad::{
     color::Color,
-    shapes::draw_rectangle,
     text::{self, draw_text_ex, measure_text, Font, TextParams},
     window::screen_height,
 };
@@ -179,9 +178,10 @@ pub fn draw_and_measure_text(
     mut y: f32,
     font_size: f32,
     color: Color,
-    width: Option<f32>,
-    height: Option<f32>,
+    bounding_box: (Option<f32>, Option<f32>),
 ) -> (f32, f32) {
+    let (width, height) = bounding_box;
+
     let font = drawing.font.lock().unwrap();
     let font_size_mul = drawing.font_size.get();
     let params = TextParams {
@@ -191,7 +191,7 @@ pub fn draw_and_measure_text(
         ..Default::default()
     };
 
-    let mut dim = measure_text(text, Some(&*font), (font_size * font_size_mul) as u16, 1.0);
+    let dim = measure_text(text, Some(&*font), (font_size * font_size_mul) as u16, 1.0);
 
     if let Some(width) = width {
         x += width / 2.0;
