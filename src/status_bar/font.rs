@@ -35,4 +35,8 @@ impl StatusBarItem for Font {
         status_bar.drawing.set_font(font);
         status_bar.drawing.set_font_size(size);
     }
+
+    fn display_mode(&self) -> super::StatusBarDisplayMode {
+        super::StatusBarDisplayMode::None
+    }
 }
