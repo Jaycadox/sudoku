@@ -10,7 +10,7 @@ use tracing::{debug, error, span, trace, warn, Level};
 use crate::{
     draw_helper::*,
     input_helper::{InputAction, InputActionChar, InputActionContext},
-    sudoku_game::SudokuGame,
+    sudoku_game::{ResetSignal, SudokuGame},
     TYPE_BUFFER_KEY,
 };
 
@@ -24,6 +24,7 @@ pub mod cpu_solve;
 mod dummy;
 mod font;
 pub mod fps;
+mod hard_reset;
 pub mod on_board_init;
 mod padding;
 pub mod pencil_marks;
@@ -322,20 +323,18 @@ impl<'a> StatusBar<'a> {
         self.commands_queue.append(&mut commands);
     }
 
-    pub fn draw(&mut self, game: &mut SudokuGame, drawing: &DrawingSettings) -> bool {
-        let should_continue = self.process_inputs(game);
+    pub fn draw(&mut self, game: &mut SudokuGame, drawing: &DrawingSettings) {
+        self.process_inputs(game);
         self.render(game, drawing);
-
-        should_continue
     }
 
-    fn process_inputs(&mut self, game: &mut SudokuGame) -> bool {
+    fn process_inputs(&mut self, game: &mut SudokuGame) {
         let span = span!(Level::INFO, "ProcessStatusBar");
         let _enter = span.enter();
 
         if let Err(message) = self.process_queued_buffer_commands(game) {
             self.buffer = message;
-        }
+        };
 
         let mut i = 0;
         for raw_idx in 0..self.items.len() {
@@ -383,7 +382,8 @@ impl<'a> StatusBar<'a> {
                 self.enter_buffer_commands(&[&self.buffer.clone()]);
             }
             Some(InputAction::HardReset) => {
-                return false;
+                game.reset_signalled = ResetSignal::Hard;
+                return;
             }
             _ => {}
         };
@@ -403,8 +403,6 @@ impl<'a> StatusBar<'a> {
             Some(InputActionChar::Clear) => self.buffer.clear(),
             None => {}
         };
-
-        true
     }
 
     fn render(&mut self, game: &mut SudokuGame, drawing: &DrawingSettings) {

@@ -14,14 +14,16 @@ use std::collections::HashSet;
 use sudoku_game::SudokuGame;
 use tracing::{debug, span, trace, warn, Level};
 
+use crate::sudoku_game::ResetSignal;
+
 fn draw_sudoku(game: &mut SudokuGame, drawing: &DrawingSettings, status_bar: &mut StatusBar) {
     let span = span!(Level::INFO, "DrawSudoku");
     let _enter = span.enter();
 
-    if game.reset_signalled {
+    if game.reset_signalled == ResetSignal::Soft {
         debug!("Game reset signalled, resetting status bar...");
         status_bar.restart(game);
-        game.reset_signalled = false;
+        game.reset_signalled = ResetSignal::None;
     }
 
     fn lerp(start: f32, end: f32, t: f32) -> f32 {
@@ -414,7 +416,8 @@ async fn main() {
             clear_background(drawing.colour(AppColour::Background));
             draw_sudoku(&mut game, &drawing, &mut status_bar);
 
-            let should_continue = status_bar.draw(&mut game, &drawing);
+            status_bar.draw(&mut game, &drawing);
+            let should_continue = game.reset_signalled != ResetSignal::Hard;
             next_frame().await;
 
             if !should_continue {

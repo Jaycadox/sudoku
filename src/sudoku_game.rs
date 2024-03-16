@@ -3,11 +3,18 @@ use tracing::{debug, span, trace, Level};
 
 use crate::status_bar::StatusBar;
 
+#[derive(Clone, PartialEq, Eq)]
+pub enum ResetSignal {
+    Hard,
+    None,
+    Soft,
+}
+
 pub struct SudokuGame {
     pub cells: Array2<u8>,
     pub unradified: Vec<u8>,
     pub selected_cell: Option<(u32, u32)>,
-    pub reset_signalled: bool,
+    pub reset_signalled: ResetSignal,
     pub padding_progress: f32,
 }
 
@@ -17,7 +24,7 @@ impl Clone for SudokuGame {
             cells: self.cells.clone(),
             unradified: self.unradified.clone(),
             selected_cell: self.selected_cell,
-            reset_signalled: self.reset_signalled,
+            reset_signalled: self.reset_signalled.clone(),
             padding_progress: 0.0,
         }
     }
@@ -52,7 +59,7 @@ impl SudokuGame {
             cells,
             unradified,
             selected_cell: None,
-            reset_signalled: false,
+            reset_signalled: ResetSignal::None,
             padding_progress: 0.0,
         };
 
@@ -98,7 +105,7 @@ impl SudokuGame {
 
         *self = to_state;
         self.unradified = Self::generate_unradified(&self.cells);
-        self.reset_signalled = true;
+        self.reset_signalled = ResetSignal::Soft;
     }
 
     #[allow(dead_code)]
