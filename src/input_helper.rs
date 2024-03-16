@@ -31,6 +31,8 @@ pub enum InputAction {
     EnterBuffer,
 }
 
+pub const TYPE_BUFFER_KEY: KeyCode = KeyCode::LeftControl;
+
 impl TryFrom<KeyCode> for InputAction {
     type Error = String;
     fn try_from(value: KeyCode) -> Result<Self, Self::Error> {
@@ -69,9 +71,9 @@ impl TryFrom<KeyCode> for InputAction {
             KeyCode::A | KeyCode::Left => InputAction::MoveLeft,
             KeyCode::S | KeyCode::Down => InputAction::MoveDown,
             KeyCode::D | KeyCode::Right => InputAction::MoveRight,
-            KeyCode::LeftControl => InputAction::ClearBuffer,
+            TYPE_BUFFER_KEY => InputAction::ClearBuffer,
             KeyCode::V => {
-                if is_key_down(KeyCode::LeftControl) && is_key_down(KeyCode::LeftAlt) {
+                if is_key_down(TYPE_BUFFER_KEY) && is_key_down(KeyCode::LeftAlt) {
                     InputAction::PasteBuffer
                 } else {
                     Err("Not a recognised key".to_string())?
@@ -86,7 +88,7 @@ impl TryFrom<KeyCode> for InputAction {
 impl InputAction {
     pub fn get_last_key_pressed(ctx: InputActionContext) -> Option<KeyCode> {
         let key = get_last_key_pressed();
-        let typing_buffer = is_key_down(KeyCode::LeftControl);
+        let typing_buffer = is_key_down(TYPE_BUFFER_KEY);
 
         match (typing_buffer, ctx) {
             (true, InputActionContext::Buffer) => key,
@@ -97,7 +99,7 @@ impl InputAction {
 
     pub fn is_key_down(key: KeyCode, ctx: InputActionContext) -> bool {
         let key = is_key_down(key);
-        let typing_buffer = is_key_down(KeyCode::LeftControl);
+        let typing_buffer = is_key_down(TYPE_BUFFER_KEY);
 
         match (typing_buffer, ctx) {
             (true, InputActionContext::Buffer) => key,

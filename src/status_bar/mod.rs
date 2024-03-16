@@ -2,7 +2,7 @@ use std::{collections::VecDeque, fmt::Display, time::Instant};
 
 use macroquad::{
     color::*,
-    miniquad::{window::screen_size, KeyCode},
+    miniquad::window::screen_size,
     shapes::{draw_line, draw_rectangle},
 };
 use tracing::{debug, error, span, trace, warn, Level};
@@ -11,6 +11,7 @@ use crate::{
     draw_helper::*,
     input_helper::{InputAction, InputActionChar, InputActionContext},
     sudoku_game::SudokuGame,
+    TYPE_BUFFER_KEY,
 };
 
 use self::{add::BuiltinAdd, dummy::Dummy};
@@ -508,7 +509,7 @@ impl<'a> StatusBar<'a> {
 
         // Now that each status bar item has been drawn, we can start to draw the buffer input
 
-        let color = if InputAction::is_key_down(KeyCode::LeftControl, InputActionContext::Buffer) {
+        let color = if InputAction::is_key_down(TYPE_BUFFER_KEY, InputActionContext::Buffer) {
             drawing.colour(AppColour::StatusBarBufferEdit)
         } else {
             drawing.colour(AppColour::StatusBarItem)
