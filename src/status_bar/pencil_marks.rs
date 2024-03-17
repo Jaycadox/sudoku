@@ -11,7 +11,7 @@ pub struct PencilMarks {
 
 impl Default for PencilMarks {
     fn default() -> Self {
-        Self { num_max: 9 }
+        Self { num_max: 2 }
     }
 }
 
