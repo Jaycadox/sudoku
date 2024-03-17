@@ -41,17 +41,7 @@ impl SudokuGame {
         debug!("Creating Sudoku game...");
 
         let mut cells = Array2::zeros((9, 9));
-        let inp =
-            ".................................................................................";
-        let inp = inp.replace('.', "0");
-        let mut unradified = Vec::new();
-        for (i, cell) in cells.iter_mut().enumerate() {
-            let val = inp.chars().nth(i).unwrap().to_digit(10).unwrap() as u8;
-            *cell = val;
-            if val == 0 {
-                unradified.push(i as u8);
-            }
-        }
+        let mut unradified = Self::generate_unradified(&cells);
 
         trace!(
             "Generated initial unradified set (len = {})",
