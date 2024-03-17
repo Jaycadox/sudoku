@@ -2,8 +2,6 @@ use crate::input_helper::InputState;
 use ndarray::{s, Array2, ArrayView, ArrayView2, Axis, Ix1};
 use tracing::{debug, error, instrument, span, trace, Level};
 
-use crate::status_bar::StatusBar;
-
 #[derive(Clone, PartialEq, Eq)]
 pub enum ResetSignal {
     Hard,
@@ -40,7 +38,7 @@ impl SudokuGame {
 
         debug!("Creating Sudoku game...");
 
-        let mut cells = match cell_str {
+        let cells = match cell_str {
             Some(cell_str) => {
                 if let Some(board) = Self::generate_cells_from_string(cell_str) {
                     board
@@ -51,22 +49,21 @@ impl SudokuGame {
             }
             None => Array2::zeros((9, 9)),
         };
-        let mut unradified = Self::generate_unradified(&cells);
+        let unradified = Self::generate_unradified(&cells);
 
         trace!(
             "Generated initial unradified set (len = {})",
             unradified.len()
         );
 
-        let mut game = SudokuGame {
+        SudokuGame {
             cells,
             unradified,
             selected_cell: None,
             reset_signalled: ResetSignal::None,
             padding_progress: 0.0,
             input: Default::default(),
-        };
-        game
+        }
     }
     #[instrument]
     fn generate_cells_from_string(cell_str: &str) -> Option<Array2<u8>> {

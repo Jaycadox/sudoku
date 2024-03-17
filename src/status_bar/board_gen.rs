@@ -65,7 +65,7 @@ impl StatusBarItem for BoardGen {
             trace!("Assuming user wants to create board from string");
             let new_game = SudokuGame::new(Some(&status_bar.buffer));
             game.reset(new_game);
-            return;
+
         }
 
         if !self.thread.is_finished() {

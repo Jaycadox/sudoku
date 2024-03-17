@@ -214,26 +214,20 @@ impl<'a> StatusBar<'a> {
 
         let mut command_words = buffer.split_whitespace();
 
-        let Some(command_name) = command_words.next() else {
-            return None;
-        };
+        let command_name = command_words.next()?;
 
         let mut buffer = command_words.collect::<Vec<_>>().join(" ");
 
         let mut dummy_item: Box<dyn StatusBarItem + 'static> = Box::<Dummy>::default();
-        let Some(idx) = self.index_with_name(command_name) else {
-            return None;
-        };
+        let idx = self.index_with_name(command_name)?;
 
-        let Some(item) = self.items.get_mut(idx) else {
-            return None;
-        };
+        let item = self.items.get_mut(idx)?;
 
         std::mem::swap(item, &mut dummy_item);
         let mut item = dummy_item;
 
         let before = buffer.clone();
-        self.buffer = buffer.clone();
+        self.buffer.clone_from(&buffer);
         item.activated(game, self);
         let name_after = item.name();
 
