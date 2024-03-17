@@ -27,6 +27,7 @@ mod hard_reset;
 pub mod on_board_init;
 mod padding;
 pub mod pencil_marks;
+mod find;
 
 #[allow(dead_code)]
 pub enum StatusBarItemOkData<'a> {

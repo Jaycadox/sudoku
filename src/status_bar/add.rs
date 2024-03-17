@@ -4,6 +4,7 @@ use crate::status_bar::{
     background_image::BackgroundImage, colour_overwrite::ColourOverwrite, font::Font,
     hard_reset::HardReset, padding::Padding, pencil_marks::PencilMarks,
 };
+use crate::status_bar::find::Find;
 
 use super::{
     board_gen::BoardGen, cpu_solve::SolveTask, fps::Fps, on_board_init::OnBoardInit, StatusBarItem,
@@ -43,6 +44,7 @@ impl StatusBarItem for BuiltinAdd {
                 "pencilmarks" => status_bar.add::<PencilMarks>(),
                 "padding" => status_bar.add::<Padding>(),
                 "hardreset" => status_bar.add::<HardReset>(),
+                "find" => status_bar.add::<Find>(),
                 "font" => status_bar.add::<Font>(),
                 _ => {
                     status_bar.buffer = "BuiltinAdd: could not find item".to_string();
