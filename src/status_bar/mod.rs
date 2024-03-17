@@ -396,6 +396,7 @@ impl<'a> StatusBar<'a> {
                 }
             }
             Some(InputAction::EnterBuffer) => {
+                game.input.enter_buffer = false;
                 self.enter_buffer_commands(&[&self.buffer.clone()]);
             }
             Some(InputAction::HardReset) => {
