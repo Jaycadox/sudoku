@@ -1,3 +1,4 @@
+use crate::input_helper::InputState;
 use ndarray::{s, Array2, ArrayView, ArrayView2, Axis, Ix1};
 use tracing::{debug, span, trace, Level};
 
@@ -16,6 +17,7 @@ pub struct SudokuGame {
     pub selected_cell: Option<(u32, u32)>,
     pub reset_signalled: ResetSignal,
     pub padding_progress: f32,
+    pub input: InputState,
 }
 
 impl Clone for SudokuGame {
@@ -26,6 +28,7 @@ impl Clone for SudokuGame {
             selected_cell: self.selected_cell,
             reset_signalled: self.reset_signalled.clone(),
             padding_progress: 0.0,
+            input: Default::default(),
         }
     }
 }
@@ -61,6 +64,7 @@ impl SudokuGame {
             selected_cell: None,
             reset_signalled: ResetSignal::None,
             padding_progress: 0.0,
+            input: Default::default(),
         };
 
         if let Some(status_bar) = status_bar {

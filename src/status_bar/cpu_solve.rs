@@ -99,7 +99,7 @@ impl StatusBarItem for SolveTask {
         let span = span!(Level::INFO, "SolveTaskActivated");
         let _enter = span.enter();
 
-        if InputAction::is_key_down(KeyCode::LeftShift, InputActionContext::Generic)
+        if InputAction::is_key_down(KeyCode::LeftShift, InputActionContext::Generic, &game.input)
             || status_bar.buffer == "run"
         {
             trace!("Running solve task...");

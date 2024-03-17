@@ -347,7 +347,9 @@ impl<'a> StatusBar<'a> {
             let display_mode = item.display_mode();
             let display = !matches!(display_mode, StatusBarDisplayMode::None);
 
-            if display && InputAction::is_function_pressed(i + 1, InputActionContext::Generic) {
+            if display
+                && InputAction::is_function_pressed(i + 1, InputActionContext::Generic, &game.input)
+            {
                 debug!(
                     "Activated status bar item via manual input: {}",
                     item.name()
@@ -367,8 +369,19 @@ impl<'a> StatusBar<'a> {
             self.items[raw_idx] = item;
         }
 
+        if let Some(InputAction::ClearBuffer) = InputAction::get_last_input(
+            if game.input.enter_buffer {
+                InputActionContext::Buffer
+            } else {
+                InputActionContext::Generic
+            },
+            &game.input,
+        ) {
+            game.input.enter_buffer = !game.input.enter_buffer;
+        }
+
         let mut ignore_next_input = false;
-        match InputAction::get_last_input(InputActionContext::Buffer) {
+        match InputAction::get_last_input(InputActionContext::Buffer, &game.input) {
             Some(InputAction::ClearBuffer) => {
                 self.buffer.clear();
             }
@@ -388,7 +401,7 @@ impl<'a> StatusBar<'a> {
             _ => {}
         };
 
-        let key = InputAction::get_last_input_char(InputActionContext::Buffer);
+        let key = InputAction::get_last_input_char(InputActionContext::Buffer, &game.input);
 
         match key {
             Some(InputActionChar::Char(c)) => {
@@ -447,6 +460,7 @@ impl<'a> StatusBar<'a> {
             let font_color = if InputAction::is_function_down(
                 visible_index as u8,
                 InputActionContext::Generic,
+                &game.input,
             ) {
                 drawing.colour(AppColour::StatusBarItemSelected)
             } else {
@@ -507,7 +521,7 @@ impl<'a> StatusBar<'a> {
 
         // Now that each status bar item has been drawn, we can start to draw the buffer input
 
-        let color = if InputAction::is_key_down(TYPE_BUFFER_KEY, InputActionContext::Buffer) {
+        let color = if game.input.enter_buffer {
             drawing.colour(AppColour::StatusBarBufferEdit)
         } else {
             drawing.colour(AppColour::StatusBarItem)

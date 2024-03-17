@@ -7,7 +7,7 @@ Download the pre-compiled latest release [here](https://github.com/Jaycadox/sudo
 ## Usage guide
 ### First launch
 At first launch, you will be met with a default Sudoku board and a status bar at the bottom of your screen, to generate a new board, perform the following
-1. (optional) To set the number of filled tiles (up to 81 on a 9x9 grid), hold the left control key and then type the number of desired tiles, you should see that number displayed at the end of the status bar, you are then free to let go of left control.
+1. (optional) To set the number of filled tiles (up to 81 on a 9x9 grid), press the left control key and then type the number of desired tiles, you should see that number displayed at the end of the status bar, then press left control again to leave buffer enter mode.
 2. To start board generation, press F2, this will indicate the progress of the generation task and will fill the board once completed. (the F2 is used because it is by default the second item in your status bar, you can press FX where X is the location of the status bar item inside of your status bar to activate that specific item, for example, by default, you can press F1 which will activate the solver and solve the board)
 
 ### Default keybindings

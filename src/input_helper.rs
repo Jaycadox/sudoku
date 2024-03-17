@@ -15,6 +15,7 @@ pub enum InputActionChar {
     Clear,
 }
 
+#[derive(Debug)]
 pub enum InputAction {
     NumberEntered(u8),
     Function(u8),
@@ -33,9 +34,13 @@ pub enum InputAction {
 
 pub const TYPE_BUFFER_KEY: KeyCode = KeyCode::LeftControl;
 
-impl TryFrom<KeyCode> for InputAction {
-    type Error = String;
-    fn try_from(value: KeyCode) -> Result<Self, Self::Error> {
+#[derive(Default)]
+pub struct InputState {
+    pub enter_buffer: bool,
+}
+
+impl InputAction {
+    fn try_from(value: KeyCode, state: &InputState) -> Result<Self, String> {
         Ok(match value {
             KeyCode::Key1 => InputAction::NumberEntered(1),
             KeyCode::Key2 => InputAction::NumberEntered(2),
@@ -73,7 +78,7 @@ impl TryFrom<KeyCode> for InputAction {
             KeyCode::D | KeyCode::Right => InputAction::MoveRight,
             TYPE_BUFFER_KEY => InputAction::ClearBuffer,
             KeyCode::V => {
-                if is_key_down(TYPE_BUFFER_KEY) && is_key_down(KeyCode::LeftAlt) {
+                if state.enter_buffer && is_key_down(KeyCode::LeftAlt) {
                     InputAction::PasteBuffer
                 } else {
                     Err("Not a recognised key".to_string())?
@@ -83,12 +88,10 @@ impl TryFrom<KeyCode> for InputAction {
             _ => Err("Not a recognised key".to_string())?,
         })
     }
-}
 
-impl InputAction {
-    pub fn get_last_key_pressed(ctx: InputActionContext) -> Option<KeyCode> {
+    pub fn get_last_key_pressed(ctx: InputActionContext, state: &InputState) -> Option<KeyCode> {
         let key = get_last_key_pressed();
-        let typing_buffer = is_key_down(TYPE_BUFFER_KEY);
+        let typing_buffer = state.enter_buffer;
 
         match (typing_buffer, ctx) {
             (true, InputActionContext::Buffer) => key,
@@ -97,9 +100,9 @@ impl InputAction {
         }
     }
 
-    pub fn is_key_down(key: KeyCode, ctx: InputActionContext) -> bool {
+    pub fn is_key_down(key: KeyCode, ctx: InputActionContext, state: &InputState) -> bool {
         let key = is_key_down(key);
-        let typing_buffer = is_key_down(TYPE_BUFFER_KEY);
+        let typing_buffer = state.enter_buffer;
 
         match (typing_buffer, ctx) {
             (true, InputActionContext::Buffer) => key,
@@ -108,38 +111,39 @@ impl InputAction {
         }
     }
 
-    pub fn get_last_input(ctx: InputActionContext) -> Option<InputAction> {
-        Self::get_last_key_pressed(ctx).and_then(|key| InputAction::try_from(key).ok())
+    pub fn get_last_input(ctx: InputActionContext, state: &InputState) -> Option<InputAction> {
+        Self::get_last_key_pressed(ctx, state)
+            .and_then(|key| InputAction::try_from(key, state).ok())
     }
 
-    pub fn is_function_pressed(num: u8, ctx: InputActionContext) -> bool {
-        let last_key_pressed = Self::get_last_input(ctx);
+    pub fn is_function_pressed(num: u8, ctx: InputActionContext, state: &InputState) -> bool {
+        let last_key_pressed = Self::get_last_input(ctx, state);
         if let Some(InputAction::Function(i)) = last_key_pressed {
             return i == num;
         }
         false
     }
 
-    pub fn is_function_down(num: u8, ctx: InputActionContext) -> bool {
+    pub fn is_function_down(num: u8, ctx: InputActionContext, state: &InputState) -> bool {
         match num {
-            1 => Self::is_key_down(KeyCode::F1, ctx),
-            2 => Self::is_key_down(KeyCode::F2, ctx),
-            3 => Self::is_key_down(KeyCode::F3, ctx),
-            4 => Self::is_key_down(KeyCode::F4, ctx),
-            5 => Self::is_key_down(KeyCode::F5, ctx),
-            6 => Self::is_key_down(KeyCode::F6, ctx),
-            7 => Self::is_key_down(KeyCode::F7, ctx),
-            8 => Self::is_key_down(KeyCode::F8, ctx),
-            9 => Self::is_key_down(KeyCode::F9, ctx),
-            10 => Self::is_key_down(KeyCode::F10, ctx),
-            11 => Self::is_key_down(KeyCode::F11, ctx),
-            12 => Self::is_key_down(KeyCode::F12, ctx),
+            1 => Self::is_key_down(KeyCode::F1, ctx, state),
+            2 => Self::is_key_down(KeyCode::F2, ctx, state),
+            3 => Self::is_key_down(KeyCode::F3, ctx, state),
+            4 => Self::is_key_down(KeyCode::F4, ctx, state),
+            5 => Self::is_key_down(KeyCode::F5, ctx, state),
+            6 => Self::is_key_down(KeyCode::F6, ctx, state),
+            7 => Self::is_key_down(KeyCode::F7, ctx, state),
+            8 => Self::is_key_down(KeyCode::F8, ctx, state),
+            9 => Self::is_key_down(KeyCode::F9, ctx, state),
+            10 => Self::is_key_down(KeyCode::F10, ctx, state),
+            11 => Self::is_key_down(KeyCode::F11, ctx, state),
+            12 => Self::is_key_down(KeyCode::F12, ctx, state),
             _ => false,
         }
     }
 
-    fn to_raw_char(key_code: KeyCode, ctx: InputActionContext) -> Option<char> {
-        let is_shift_pressed = Self::is_key_down(KeyCode::LeftShift, ctx);
+    fn to_raw_char(key_code: KeyCode, ctx: InputActionContext, state: &InputState) -> Option<char> {
+        let is_shift_pressed = Self::is_key_down(KeyCode::LeftShift, ctx, state);
         match key_code {
             KeyCode::Space => Some(' '),
             KeyCode::Apostrophe => Some(if is_shift_pressed { '"' } else { '\'' }),
@@ -194,11 +198,14 @@ impl InputAction {
         }
     }
 
-    pub fn get_last_input_char(ctx: InputActionContext) -> Option<InputActionChar> {
-        Self::get_last_key_pressed(ctx).and_then(|x| match x {
+    pub fn get_last_input_char(
+        ctx: InputActionContext,
+        state: &InputState,
+    ) -> Option<InputActionChar> {
+        Self::get_last_key_pressed(ctx, state).and_then(|x| match x {
             KeyCode::Backspace => Some(InputActionChar::Backspace),
             KeyCode::Escape => Some(InputActionChar::Clear),
-            x => Self::to_raw_char(x, ctx).map(InputActionChar::Char),
+            x => Self::to_raw_char(x, ctx, state).map(InputActionChar::Char),
         })
     }
 }
