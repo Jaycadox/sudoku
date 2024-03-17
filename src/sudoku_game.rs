@@ -1,6 +1,6 @@
 use crate::input_helper::InputState;
 use ndarray::{s, Array2, ArrayView, ArrayView2, Axis, Ix1};
-use tracing::{debug, span, trace, Level, instrument, error};
+use tracing::{debug, error, instrument, span, trace, Level};
 
 use crate::status_bar::StatusBar;
 
@@ -48,7 +48,7 @@ impl SudokuGame {
                     error!("Unable to create desired board");
                     Array2::zeros((9, 9))
                 }
-            },
+            }
             None => Array2::zeros((9, 9)),
         };
         let mut unradified = Self::generate_unradified(&cells);
@@ -75,7 +75,11 @@ impl SudokuGame {
         trace!("Attempting to generate board from string: {cell_str}");
 
         if cells.len() != cell_str.len() {
-            error!("Cell generation failed, string is not of equal size to board. Wanted {}, got {}.", cells.len(), cell_str.len());
+            error!(
+                "Cell generation failed, string is not of equal size to board. Wanted {}, got {}.",
+                cells.len(),
+                cell_str.len()
+            );
             return None;
         }
 

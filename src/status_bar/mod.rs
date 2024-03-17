@@ -10,7 +10,7 @@ use tracing::{debug, error, span, trace, warn, Level};
 use crate::{
     draw_helper::*,
     input_helper::{InputAction, InputActionChar, InputActionContext},
-    sudoku_game::{ResetSignal, SudokuGame}
+    sudoku_game::{ResetSignal, SudokuGame},
 };
 
 use self::{add::BuiltinAdd, dummy::Dummy};
@@ -21,13 +21,13 @@ pub mod board_gen;
 pub mod colour_overwrite;
 pub mod cpu_solve;
 mod dummy;
+mod find;
 mod font;
 pub mod fps;
 mod hard_reset;
 pub mod on_board_init;
 mod padding;
 pub mod pencil_marks;
-mod find;
 
 #[allow(dead_code)]
 pub enum StatusBarItemOkData<'a> {
@@ -348,11 +348,15 @@ impl<'a> StatusBar<'a> {
             let display = !matches!(display_mode, StatusBarDisplayMode::None);
 
             if display
-                && InputAction::is_function_pressed(i + 1, if game.input.enter_buffer {
-                InputActionContext::Buffer
-            } else {
-                InputActionContext::Generic
-            }, &game.input)
+                && InputAction::is_function_pressed(
+                    i + 1,
+                    if game.input.enter_buffer {
+                        InputActionContext::Buffer
+                    } else {
+                        InputActionContext::Generic
+                    },
+                    &game.input,
+                )
             {
                 debug!(
                     "Activated status bar item via manual input: {}",
