@@ -10,8 +10,7 @@ use tracing::{debug, error, span, trace, warn, Level};
 use crate::{
     draw_helper::*,
     input_helper::{InputAction, InputActionChar, InputActionContext},
-    sudoku_game::{ResetSignal, SudokuGame},
-    TYPE_BUFFER_KEY,
+    sudoku_game::{ResetSignal, SudokuGame}
 };
 
 use self::{add::BuiltinAdd, dummy::Dummy};
@@ -348,13 +347,17 @@ impl<'a> StatusBar<'a> {
             let display = !matches!(display_mode, StatusBarDisplayMode::None);
 
             if display
-                && InputAction::is_function_pressed(i + 1, InputActionContext::Generic, &game.input)
+                && InputAction::is_function_pressed(i + 1, if game.input.enter_buffer {
+                InputActionContext::Buffer
+            } else {
+                InputActionContext::Generic
+            }, &game.input)
             {
                 debug!(
                     "Activated status bar item via manual input: {}",
                     item.name()
                 );
-
+                game.input.enter_buffer = false;
                 let before = self.buffer.clone();
                 item.activated(game, self);
                 if before == self.buffer {
