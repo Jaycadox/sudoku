@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 use std::{collections::VecDeque, fmt::Display, time::Instant};
 
 use macroquad::{
@@ -130,6 +131,8 @@ pub struct StatusBar<'a> {
     pub drawing: &'a DrawingSettings,
     commands_queue: VecDeque<String>,
     current_command: Option<String>,
+    command_history: Vec<String>,
+    command_history_offset: usize,
 }
 
 impl<'a> StatusBar<'a> {
@@ -141,6 +144,8 @@ impl<'a> StatusBar<'a> {
             drawing,
             commands_queue: VecDeque::new(),
             current_command: None,
+            command_history: Default::default(),
+            command_history_offset: 0,
         }
     }
 
@@ -211,6 +216,7 @@ impl<'a> StatusBar<'a> {
         let _enter = span.enter();
 
         let buffer = self.buffer.clone();
+        let og_command = buffer.clone();
 
         let mut command_words = buffer.split_whitespace();
 
@@ -236,6 +242,8 @@ impl<'a> StatusBar<'a> {
         }
 
         self.buffer = buffer;
+
+        self.command_history.push(og_command); // TODO: find if vec already contains item and move it back to the front
 
         *self.items.get_mut(idx).unwrap() = item;
         Some(name_after.to_string()) // calling item.activate() could hypothetically result in a
@@ -383,6 +391,7 @@ impl<'a> StatusBar<'a> {
         }
 
         let mut ignore_next_input = false;
+        let mut should_reset_history_pos = true;
         match InputAction::get_last_input(InputActionContext::Buffer, &game.input) {
             Some(InputAction::ClearBuffer) => {
                 self.buffer.clear();
@@ -401,8 +410,49 @@ impl<'a> StatusBar<'a> {
                 game.reset_signalled = ResetSignal::Hard;
                 return;
             }
-            _ => {}
+            Some(InputAction::UpBuffer) => {
+                should_reset_history_pos = false;
+                if self.command_history_offset < self.command_history.len() {
+                    self.command_history_offset += 1;
+                }
+
+                if let Some(item) = self
+                    .command_history
+                    .get(self.command_history.len() - self.command_history_offset)
+                {
+                    self.buffer = item.to_string();
+                }
+            }
+            Some(InputAction::DownBuffer) => {
+                should_reset_history_pos = false;
+                match self.command_history_offset.cmp(&1) {
+                    Ordering::Greater => {
+                        self.command_history_offset -= 1;
+                    }
+                    Ordering::Equal => {
+                        self.buffer = String::new();
+                        self.command_history_offset = 0;
+                    }
+                    _ => {}
+                };
+
+                if let Some(item) = self
+                    .command_history
+                    .get(self.command_history.len() - self.command_history_offset)
+                {
+                    self.buffer = item.to_string();
+                }
+            }
+            _ => {
+                should_reset_history_pos = false;
+            }
         };
+
+        // Action performed whereby the position didn't change, meaning the current scroll state was discarded
+        if should_reset_history_pos {
+            println!("reset");
+            self.command_history_offset = 0;
+        }
 
         let key = InputAction::get_last_input_char(InputActionContext::Buffer, &game.input);
 

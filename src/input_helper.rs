@@ -30,6 +30,8 @@ pub enum InputAction {
     ClearBuffer,
     PasteBuffer,
     EnterBuffer,
+    UpBuffer,
+    DownBuffer,
 }
 
 pub const TYPE_BUFFER_KEY: KeyCode = KeyCode::LeftControl;
@@ -72,10 +74,24 @@ impl InputAction {
             KeyCode::F10 => InputAction::Function(10),
             KeyCode::F11 => InputAction::Function(11),
             KeyCode::F12 => InputAction::Function(12),
-            KeyCode::W | KeyCode::Up => InputAction::MoveUp,
+            KeyCode::W => InputAction::MoveUp,
             KeyCode::A | KeyCode::Left => InputAction::MoveLeft,
-            KeyCode::S | KeyCode::Down => InputAction::MoveDown,
+            KeyCode::S => InputAction::MoveDown,
             KeyCode::D | KeyCode::Right => InputAction::MoveRight,
+            KeyCode::Up => {
+                if state.enter_buffer {
+                    InputAction::UpBuffer
+                } else {
+                    InputAction::MoveUp
+                }
+            }
+            KeyCode::Down => {
+                if state.enter_buffer {
+                    InputAction::DownBuffer
+                } else {
+                    InputAction::MoveDown
+                }
+            }
             TYPE_BUFFER_KEY => InputAction::ClearBuffer,
             KeyCode::V => {
                 if state.enter_buffer && is_key_down(KeyCode::LeftAlt) {
