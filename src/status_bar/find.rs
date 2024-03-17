@@ -32,11 +32,8 @@ impl StatusBarItem for Find {
             direction = FindDirection::Behind;
             buffer.remove(0);
             if pos_auto_set {
-                cursor_pos = SudokuGame::xy_pos_to_idx(
-                    (size - 1) as u32,
-                    (size - 1) as u32,
-                    size as u32,
-                );
+                cursor_pos =
+                    SudokuGame::xy_pos_to_idx((size - 1) as u32, (size - 1) as u32, size as u32);
             }
         }
 
