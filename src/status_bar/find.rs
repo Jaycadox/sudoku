@@ -1,7 +1,7 @@
-use crate::sudoku_game::{ResetSignal, SudokuGame};
+use crate::sudoku_game::SudokuGame;
 use tracing::{span, Level};
 
-use super::{StatusBar, StatusBarItem};
+use super::StatusBarItem;
 
 #[derive(Default)]
 pub struct Find;
@@ -28,17 +28,15 @@ impl StatusBarItem for Find {
         let pos_auto_set = game.selected_cell.is_none();
 
         let mut direction = FindDirection::Ahead;
-        if buffer.len() == 2 {
-            if buffer.chars().next() == Some('.') {
-                direction = FindDirection::Behind;
-                buffer.remove(0);
-                if pos_auto_set {
-                    cursor_pos = SudokuGame::xy_pos_to_idx(
-                        (size - 1) as u32,
-                        (size - 1) as u32,
-                        size as u32,
-                    );
-                }
+        if buffer.len() == 2 && buffer.starts_with('.') {
+            direction = FindDirection::Behind;
+            buffer.remove(0);
+            if pos_auto_set {
+                cursor_pos = SudokuGame::xy_pos_to_idx(
+                    (size - 1) as u32,
+                    (size - 1) as u32,
+                    size as u32,
+                );
             }
         }
 
@@ -98,7 +96,7 @@ fn find(
     let offset = direction.to_offset();
     let mut i: i64 = start as i64;
 
-    if !has_defined_cursor {
+    if has_defined_cursor {
         i += offset as i64;
     }
 
