@@ -423,7 +423,7 @@ async fn main() {
         let mut status_bar = StatusBar::new(&drawing);
         status_bar.enter_buffer_commands(&[&rc[..]]);
 
-        let mut game = SudokuGame::new(Some(&mut status_bar));
+        let mut game = SudokuGame::new(None);
 
         loop {
             let span = span!(Level::TRACE, "MainLoop");

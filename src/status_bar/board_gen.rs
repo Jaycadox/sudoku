@@ -57,9 +57,16 @@ impl StatusBarItem for BoardGen {
         "BoardGen"
     }
 
-    fn activated(&mut self, _old_game: &mut SudokuGame, status_bar: &mut StatusBar) {
+    fn activated(&mut self, game: &mut SudokuGame, status_bar: &mut StatusBar) {
         let span = span!(Level::INFO, "BoardGenActivate");
         let _enter = span.enter();
+
+        if status_bar.buffer.len() == game.cells.len() {
+            trace!("Assuming user wants to create board from string");
+            let new_game = SudokuGame::new(Some(&status_bar.buffer));
+            game.reset(new_game);
+            return;
+        }
 
         if !self.thread.is_finished() {
             self.should_stop

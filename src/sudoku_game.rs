@@ -1,6 +1,6 @@
 use crate::input_helper::InputState;
 use ndarray::{s, Array2, ArrayView, ArrayView2, Axis, Ix1};
-use tracing::{debug, span, trace, Level};
+use tracing::{debug, span, trace, Level, instrument, error};
 
 use crate::status_bar::StatusBar;
 
@@ -34,13 +34,23 @@ impl Clone for SudokuGame {
 }
 
 impl SudokuGame {
-    pub fn new(status_bar: Option<&mut StatusBar>) -> Self {
+    pub fn new(cell_str: Option<&str>) -> Self {
         let span = span!(Level::INFO, "CreateGame");
         let _enter = span.enter();
 
         debug!("Creating Sudoku game...");
 
-        let mut cells = Array2::zeros((9, 9));
+        let mut cells = match cell_str {
+            Some(cell_str) => {
+                if let Some(board) = Self::generate_cells_from_string(cell_str) {
+                    board
+                } else {
+                    error!("Unable to create desired board");
+                    Array2::zeros((9, 9))
+                }
+            },
+            None => Array2::zeros((9, 9)),
+        };
         let mut unradified = Self::generate_unradified(&cells);
 
         trace!(
@@ -56,13 +66,34 @@ impl SudokuGame {
             padding_progress: 0.0,
             input: Default::default(),
         };
+        game
+    }
+    #[instrument]
+    fn generate_cells_from_string(cell_str: &str) -> Option<Array2<u8>> {
+        let mut cells = Array2::zeros((9, 9));
 
-        if let Some(status_bar) = status_bar {
-            trace!("Created with status bar, signalling status bar reset...");
-            status_bar.restart(&mut game);
+        trace!("Attempting to generate board from string: {cell_str}");
+
+        if cells.len() != cell_str.len() {
+            error!("Cell generation failed, string is not of equal size to board. Wanted {}, got {}.", cells.len(), cell_str.len());
+            return None;
         }
 
-        game
+        let inp = cell_str.replace('.', "0");
+        let mut unradified = Vec::new();
+        for (i, (cell, c)) in cells.iter_mut().zip(inp.chars()).enumerate() {
+            let Some(val) = c.to_digit(10) else {
+                error!("Non numeric character found when generating cells from string: '{c}'");
+                return None;
+            };
+
+            *cell = val as u8;
+            if val == 0 {
+                unradified.push(i as u8);
+            }
+        }
+
+        Some(cells)
     }
 
     fn generate_unradified(cells: &Array2<u8>) -> Vec<u8> {
