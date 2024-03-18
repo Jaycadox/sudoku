@@ -1,19 +1,19 @@
-use std::cmp::Ordering;
 use std::{collections::VecDeque, fmt::Display, time::Instant};
+use std::cmp::Ordering;
 
 use macroquad::{
     color::*,
     miniquad::window::screen_size,
     shapes::{draw_line, draw_rectangle},
 };
-use tracing::{debug, error, span, trace, warn, Level};
+use tracing::{debug, error, Level, span, trace, warn};
 
-use crate::status_bar::shorthands::list::ShorthandList;
 use crate::{
     draw_helper::*,
     input_helper::{InputAction, InputActionChar, InputActionContext},
     sudoku_game::{ResetSignal, SudokuGame},
 };
+use crate::status_bar::shorthands::list::ShorthandList;
 
 use self::{add::BuiltinAdd, dummy::Dummy};
 
@@ -32,6 +32,7 @@ mod padding;
 pub mod pencil_marks;
 #[macro_use]
 pub mod shorthands;
+mod eval;
 
 #[allow(dead_code)]
 pub enum StatusBarItemOkData<'a> {
@@ -265,12 +266,9 @@ impl<'a> StatusBar<'a> {
         self.buffer.clone_from(&buffer);
         item.activated(game, self);
         let name_after = item.name();
-
         if before == self.buffer {
-            buffer.clear();
+            self.buffer.clear();
         }
-
-        self.buffer = buffer;
 
         self.command_history.push(og_command); // TODO: find if vec already contains item and move it back to the front
 
