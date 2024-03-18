@@ -4,6 +4,8 @@ use macroquad::time::get_fps;
 use tracing::{debug, error, span, trace, Level};
 
 use crate::draw_helper::AppColour;
+use crate::shorthand;
+use crate::status_bar::shorthands::list::ShorthandList;
 
 use super::{StatusBar, StatusBarItem};
 
@@ -81,5 +83,9 @@ impl StatusBarItem for Fps {
             format!("{:<4}", output),
             status_bar.drawing.colour(AppColour::StatusBarItem),
         )
+    }
+
+    fn shorthands(&self) -> Option<ShorthandList> {
+        shorthand![(r"^(\d+)fps$", "$1")]
     }
 }
