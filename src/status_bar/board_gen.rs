@@ -7,8 +7,10 @@ use macroquad::rand::ChooseRandom;
 use rand::Rng;
 use tracing::{debug, error, span, trace, Level};
 
+use crate::status_bar::shorthands::list::ShorthandList;
 use crate::{
     draw_helper::AppColour,
+    shorthand,
     status_bar::cpu_solve::{self, SolveTask},
     sudoku_game::SudokuGame,
     task_status::TaskStatus,
@@ -57,6 +59,10 @@ impl StatusBarItem for BoardGen {
         "BoardGen"
     }
 
+    fn shorthands(&self) -> Option<ShorthandList> {
+        shorthand![(r"^[0-9.]{81}$", "$0")]
+    }
+
     fn activated(&mut self, game: &mut SudokuGame, status_bar: &mut StatusBar) {
         let span = span!(Level::INFO, "BoardGenActivate");
         let _enter = span.enter();
@@ -65,6 +71,7 @@ impl StatusBarItem for BoardGen {
             trace!("Assuming user wants to create board from string");
             let new_game = SudokuGame::new(Some(&status_bar.buffer));
             game.reset(new_game);
+            return;
         }
 
         if !self.thread.is_finished() {

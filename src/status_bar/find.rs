@@ -1,3 +1,5 @@
+use crate::shorthand;
+use crate::status_bar::shorthands::list::ShorthandList;
 use crate::sudoku_game::SudokuGame;
 use tracing::{span, Level};
 
@@ -65,6 +67,10 @@ impl StatusBarItem for Find {
 
     fn display_mode(&self) -> super::StatusBarDisplayMode {
         super::StatusBarDisplayMode::NameOnly
+    }
+
+    fn shorthands(&self) -> Option<ShorthandList> {
+        shorthand![(r"^[\.]?\d$", "$0")]
     }
 }
 

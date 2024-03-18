@@ -8,6 +8,7 @@ use macroquad::{
 };
 use tracing::{debug, error, span, trace, warn, Level};
 
+use crate::status_bar::shorthands::list::ShorthandList;
 use crate::{
     draw_helper::*,
     input_helper::{InputAction, InputActionChar, InputActionContext},
@@ -29,6 +30,8 @@ mod hard_reset;
 pub mod on_board_init;
 mod padding;
 pub mod pencil_marks;
+#[macro_use]
+pub mod shorthands;
 
 #[allow(dead_code)]
 pub enum StatusBarItemOkData<'a> {
@@ -121,6 +124,10 @@ pub trait StatusBarItem {
         let _ = drawing;
         let _ = game;
         DrawHookAction::Continue
+    }
+
+    fn shorthands(&self) -> Option<ShorthandList> {
+        None
     }
 }
 
@@ -225,7 +232,29 @@ impl<'a> StatusBar<'a> {
         let mut buffer = command_words.collect::<Vec<_>>().join(" ");
 
         let mut dummy_item: Box<dyn StatusBarItem + 'static> = Box::<Dummy>::default();
-        let idx = self.index_with_name(command_name)?;
+        let mut idx = self.index_with_name(command_name);
+
+        if idx.is_none() {
+            trace!("Regular command handler not found, attempting shorthands...");
+            // Attempt shorthands
+            for (i, item) in self.items.iter().enumerate() {
+                if let Some(sh) = item.shorthands() {
+                    if let Some(sh_out) = sh.apply_to_string(&og_command) {
+                        trace!(
+                            "Found shorthand for '{}', converting '{}' into {}",
+                            item.name(),
+                            og_command,
+                            sh_out
+                        );
+                        buffer = sh_out;
+                        idx = Some(i);
+                        break;
+                    }
+                }
+            }
+        }
+
+        let idx = idx?;
 
         let item = self.items.get_mut(idx)?;
 
@@ -450,7 +479,6 @@ impl<'a> StatusBar<'a> {
 
         // Action performed whereby the position didn't change, meaning the current scroll state was discarded
         if should_reset_history_pos {
-            println!("reset");
             self.command_history_offset = 0;
         }
 
