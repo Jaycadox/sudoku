@@ -33,7 +33,7 @@ impl SolveTask {
             status: TaskStatus::<SudokuGame>::Waiting(std::time::Instant::now()),
             _thread: std::thread::spawn(move || {
                 if let Err(e) = tx.send(solve(&game)) {
-                    eprintln!("solve_task :: failed to send to parent thread, the game might have already reset. {e}");
+                    error!("solve_task :: failed to send to parent thread, the game might have already reset. {e}");
                 }
             }),
         }
@@ -183,7 +183,7 @@ fn solve_basic_inner(game: &mut SudokuGame, depth: usize) {
     const APPLY_ON_ROWS_AND_COLS: bool = false; // seems to decrease performance
 
     if depth > 1000 {
-        eprintln!("solve basic inner stuck in recursion");
+        error!("solve basic inner stuck in recursion");
         return;
     }
 
