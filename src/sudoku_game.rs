@@ -1,7 +1,8 @@
-use ndarray::{Array2, ArrayView, ArrayView2, Axis, Ix1, s};
-use tracing::{debug, error, instrument, Level, span, trace};
+use ndarray::{s, Array2, ArrayView, ArrayView2, Axis, Ix1};
+use tracing::{debug, error, instrument, span, trace, Level};
 
 use crate::input_helper::InputState;
+use crate::status_bar::StatusBar;
 
 #[derive(Clone, PartialEq, Eq)]
 pub enum ResetSignal {
@@ -17,6 +18,7 @@ pub struct SudokuGame {
     pub reset_signalled: ResetSignal,
     pub padding_progress: f32,
     pub input: InputState,
+    pub wanted_commands: Vec<String>,
 }
 
 impl Clone for SudokuGame {
@@ -28,6 +30,7 @@ impl Clone for SudokuGame {
             reset_signalled: self.reset_signalled.clone(),
             padding_progress: 0.0,
             input: Default::default(),
+            wanted_commands: Vec::new(),
         }
     }
 }
@@ -64,8 +67,18 @@ impl SudokuGame {
             reset_signalled: ResetSignal::None,
             padding_progress: 0.0,
             input: Default::default(),
+            wanted_commands: Vec::new(),
         }
     }
+
+    pub fn flush_wanted_commands(&mut self, status_bar: &mut StatusBar) {
+        for cmd in &self.wanted_commands {
+            status_bar.enter_buffer_commands(&[cmd]);
+        }
+
+        self.wanted_commands.clear();
+    }
+
     #[instrument]
     pub(crate) fn generate_cells_from_string(cell_str: &str) -> Option<Array2<u8>> {
         let mut cells = Array2::zeros((9, 9));

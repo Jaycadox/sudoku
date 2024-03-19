@@ -1,19 +1,19 @@
-use std::{collections::VecDeque, fmt::Display, time::Instant};
 use std::cmp::Ordering;
+use std::{collections::VecDeque, fmt::Display, time::Instant};
 
 use macroquad::{
     color::*,
     miniquad::window::screen_size,
     shapes::{draw_line, draw_rectangle},
 };
-use tracing::{debug, error, Level, span, trace, warn};
+use tracing::{debug, error, span, trace, warn, Level};
 
+use crate::status_bar::shorthands::list::ShorthandList;
 use crate::{
     draw_helper::*,
     input_helper::{InputAction, InputActionChar, InputActionContext},
     sudoku_game::{ResetSignal, SudokuGame},
 };
-use crate::status_bar::shorthands::list::ShorthandList;
 
 use self::{add::BuiltinAdd, dummy::Dummy};
 
