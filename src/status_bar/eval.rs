@@ -1,10 +1,10 @@
 use std::default::Default;
 
 use macroquad::color::{Color, WHITE};
-use mlua::prelude::{LuaResult, LuaUserData, LuaUserDataMethods};
-use mlua::Error::RuntimeError;
 use mlua::{Function, Lua, LuaOptions, StdLib, Table, Value};
-use tracing::{debug, error, info, info_span, span, trace, warn, Level};
+use mlua::Error::RuntimeError;
+use mlua::prelude::{LuaResult, LuaUserData, LuaUserDataMethods};
+use tracing::{debug, error, info, info_span, Level, span, trace, warn};
 
 use crate::config;
 use crate::status_bar::shorthands::list::ShorthandList;
@@ -18,6 +18,30 @@ impl LuaUserData for SudokuGame {
             "pretty_board_string",
             |_, s, ()| Ok(s.pretty_board_string()),
         );
+
+        methods.add_method("cells", |lua, s, ()| {
+            let table = lua.create_table()?;
+            for cell in s.cells.iter() {
+                table.push(*cell)?;
+            }
+            Ok(table)
+        });
+
+        methods.add_method::<_, u32, _>("unoccupied_cells_at", |_, s, idx| {
+            let in_sight = cpu_solve::get_occupied_numbers_at_cell(
+                s,
+                SudokuGame::idx_pos_to_xy(idx, s.cells.shape()[1] as u32),
+            );
+            let mut not_in_sight = vec![];
+            for i in 1..=9 {
+                if !in_sight[i - 1] {
+                    not_in_sight.push(i);
+                }
+            }
+
+            Ok(not_in_sight)
+        });
+
         methods.add_method("board_string", |_, s, ()| Ok(s.board_string()));
         methods.add_method("solve", |_, s, ()| Ok(cpu_solve::solve(s)));
         methods.add_method_mut::<_, String, ()>("update_board_from_string", |_, s, inp| {
@@ -30,6 +54,10 @@ impl LuaUserData for SudokuGame {
         methods.add_method_mut::<_, String, ()>("new_from_string", |_, s, inp| {
             let new_game = SudokuGame::new(Some(&inp));
             s.reset(new_game);
+            Ok(())
+        });
+        methods.add_method_mut::<_, String, ()>("enter_buffer_command", |_, s, inp| {
+            s.wanted_commands.push(inp);
             Ok(())
         });
     }
@@ -74,6 +102,10 @@ events["on_board_gen"] = function(callback)
     table.insert(__ON_BOARDGEN_FUNCTIONS__, callback)
 end
 
+__ON_UPDATE_FUNCTIONS__ = {}
+events["on_update"] = function(callback)
+    table.insert(__ON_UPDATE_FUNCTIONS__, callback)
+end
 "#,
             )
             .exec()?;
@@ -198,21 +230,6 @@ impl StatusBarItem for Eval {
         "Eval"
     }
 
-    fn update(&mut self, _game: &mut SudokuGame, _status_bar: &mut StatusBar) -> (String, Color) {
-        ("".to_string(), WHITE)
-    }
-
-    fn board_init(&mut self, game: &mut SudokuGame, _status_bar: &mut StatusBar) {
-        let span = span!(Level::INFO, "RunLua");
-        let _enter = span.enter();
-
-        for scr in &self.scripts {
-            if let Err(e) = scr.generic_game_callback(game, "__ON_BOARDGEN_FUNCTIONS__") {
-                error!("Lua 'BoardInit' error: {e}");
-            }
-        }
-    }
-
     fn activated(
         &mut self,
         game: &mut crate::sudoku_game::SudokuGame,
@@ -259,6 +276,28 @@ impl StatusBarItem for Eval {
                 error!("Lua Error: {e}");
             }
             _ => {}
+        }
+    }
+
+    fn update(&mut self, game: &mut SudokuGame, status_bar: &mut StatusBar) -> (String, Color) {
+        for scr in &self.scripts {
+            if let Err(e) = scr.generic_game_callback(game, "__ON_UPDATE_FUNCTIONS__") {
+                error!("Lua 'Update' error: {e}");
+            }
+        }
+
+        game.flush_wanted_commands(status_bar);
+        ("".to_string(), WHITE)
+    }
+
+    fn board_init(&mut self, game: &mut SudokuGame, _status_bar: &mut StatusBar) {
+        let span = span!(Level::INFO, "RunLua");
+        let _enter = span.enter();
+
+        for scr in &self.scripts {
+            if let Err(e) = scr.generic_game_callback(game, "__ON_BOARDGEN_FUNCTIONS__") {
+                error!("Lua 'BoardInit' error: {e}");
+            }
         }
     }
 
