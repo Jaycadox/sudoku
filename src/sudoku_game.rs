@@ -1,6 +1,7 @@
+use ndarray::{Array2, ArrayView, ArrayView2, Axis, Ix1, s};
+use tracing::{debug, error, instrument, Level, span, trace};
+
 use crate::input_helper::InputState;
-use ndarray::{s, Array2, ArrayView, ArrayView2, Axis, Ix1};
-use tracing::{debug, error, instrument, span, trace, Level};
 
 #[derive(Clone, PartialEq, Eq)]
 pub enum ResetSignal {
@@ -66,7 +67,7 @@ impl SudokuGame {
         }
     }
     #[instrument]
-    fn generate_cells_from_string(cell_str: &str) -> Option<Array2<u8>> {
+    pub(crate) fn generate_cells_from_string(cell_str: &str) -> Option<Array2<u8>> {
         let mut cells = Array2::zeros((9, 9));
 
         trace!("Attempting to generate board from string: {cell_str}");
@@ -136,17 +137,27 @@ impl SudokuGame {
 
     #[allow(dead_code)]
     pub fn print_board(&self) {
-        println!("{}", self.board_string());
+        println!("{}", self.pretty_board_string());
     }
 
     #[allow(dead_code)]
-    pub fn board_string(&self) -> String {
+    pub fn pretty_board_string(&self) -> String {
         let mut buf = String::new();
         for row in self.rows() {
             for cell in row {
                 buf.push_str(&format!("{} ", *cell));
             }
             buf.push('\n');
+        }
+
+        buf
+    }
+
+    pub(crate) fn board_string(&self) -> String {
+        let mut buf = String::with_capacity(self.cells.len());
+        for cell in self.cells.iter() {
+            let cell = *cell;
+            buf.push_str(&cell.to_string());
         }
 
         buf

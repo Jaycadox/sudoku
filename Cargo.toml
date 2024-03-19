@@ -16,7 +16,7 @@ bit-vec = "0.6.3"
 directories = "5.0.1"
 lazy_static = "1.4.0"
 macroquad = "0.4.4"
-mlua = { version = "0.9.6", features = ["luajit"] }
+mlua = { version = "0.9.6", features = ["luau"] }
 ndarray = "0.15.6"
 num_cpus = "1.16.0"
 rand = "0.8.5"

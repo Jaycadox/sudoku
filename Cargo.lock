@@ -341,6 +341,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9c198f91728a82281a64e1f4f9eeb25d82cb32a5de251c6bd1b5154d63a8e7bd"
 
 [[package]]
+name = "libloading"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d580318f95776505201b28cf98eb1fa5e4be3b689633ba6a3e6cd880ff22d8cb"
+dependencies = [
+ "cfg-if",
+ "windows-sys 0.48.0",
+]
+
+[[package]]
 name = "libredox"
 version = "0.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -372,6 +382,15 @@ name = "log"
 version = "0.4.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "90ed8c1e510134f979dbc4f070f87d4313098b704861a105fe34231c70a3901c"
+
+[[package]]
+name = "luau0-src"
+version = "0.8.5+luau617"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "652e36b8c35d807ec76a4931fe7c62883c62cc93311fb49bf5b76084647078ea"
+dependencies = [
+ "cc",
+]
 
 [[package]]
 name = "macroquad"
@@ -449,6 +468,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "868d02cb5eb97761bbf6bd6922c1c7a88b8ea252bbf43bd8350a0bf8497a1fc0"
 dependencies = [
  "bstr",
+ "libloading",
  "mlua-sys",
  "num-traits",
  "once_cell",
@@ -463,6 +483,7 @@ checksum = "2847b42764435201d8cbee1f517edb79c4cca4181877b90047587c89e1b7bce4"
 dependencies = [
  "cc",
  "cfg-if",
+ "luau0-src",
  "pkg-config",
 ]
 
