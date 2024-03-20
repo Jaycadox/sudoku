@@ -87,28 +87,16 @@ impl LuaScript {
             name: name.to_string(),
         };
 
-        scr.lua
-            .load(
-                r#"
-events = {}
-
-__ON_INIT_FUNCTIONS__ = {}
-events["on_init"] = function(callback)
-    table.insert(__ON_INIT_FUNCTIONS__, callback)
-end
-
-__ON_BOARDGEN_FUNCTIONS__ = {}
-events["on_board_gen"] = function(callback)
-    table.insert(__ON_BOARDGEN_FUNCTIONS__, callback)
-end
-
-__ON_UPDATE_FUNCTIONS__ = {}
-events["on_update"] = function(callback)
-    table.insert(__ON_UPDATE_FUNCTIONS__, callback)
-end
-"#,
-            )
-            .exec()?;
+        scr.lua.globals().set(
+            "__systime_ms__",
+            scr.lua.create_function(move |_, ()| {
+                let time = std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .map(|x| x.as_millis())
+                    .unwrap_or(0);
+                Ok(time)
+            })?,
+        )?;
 
         let name_2 = name.to_string();
         scr.lua.globals().set(
@@ -165,11 +153,45 @@ end
             })?,
         )?;
 
+        scr.lua
+            .load(
+                r#"
+events = {}
+
+__ON_INIT_FUNCTIONS__ = {}
+events["on_init"] = function(callback)
+    table.insert(__ON_INIT_FUNCTIONS__, callback)
+end
+
+__ON_BOARDGEN_FUNCTIONS__ = {}
+events["on_board_gen"] = function(callback)
+    table.insert(__ON_BOARDGEN_FUNCTIONS__, callback)
+end
+
+__ON_UPDATE_FUNCTIONS__ = {}
+events["on_update"] = function(callback)
+    table.insert(__ON_UPDATE_FUNCTIONS__, callback)
+end
+
+__WAIT_FUNCTIONS__ = {}
+events["wait_ms"] = function(ms, callback)
+    table.insert(__WAIT_FUNCTIONS__, { target = __systime_ms__() + ms, cb = callback, interval = -1 })
+end
+
+__WAIT_FUNCTIONS__ = {}
+events["repeat_ms"] = function(ms, callback)
+    table.insert(__WAIT_FUNCTIONS__, { target = __systime_ms__() + 1, cb = callback, interval = ms })
+end
+
+print = info
+"#,
+            )
+            .exec()?;
+
         scr.lua.load(code).set_name(name).exec()?;
 
         Ok(scr)
     }
-
     fn generic_game_callback(&self, sudoku: &mut SudokuGame, name: &str) -> LuaResult<()> {
         let funcs = self.lua.globals().get::<_, Table>(name)?;
 
@@ -180,6 +202,50 @@ end
                 let bs = scope.create_userdata_ref_mut(sudoku)?;
                 func.call(bs)
             })?;
+        }
+
+        Ok(())
+    }
+    fn update_wait_funcs(&self, sudoku: &mut SudokuGame) -> LuaResult<()> {
+        let funcs = self.lua.globals().get::<_, Table>("__WAIT_FUNCTIONS__")?;
+        let mut remove_keys = vec![];
+
+        for item in funcs.pairs::<Value, Table>() {
+            let (key, table) = item?;
+            let wanted_ms = table.get::<_, u128>("target")?;
+            let func = table.get::<_, Function>("cb")?;
+            let interval = table.get::<_, i32>("interval")?;
+            let mut repeating = interval != -1;
+
+            let time = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|x| x.as_millis())
+                .unwrap_or(0);
+
+            if time < wanted_ms {
+                continue;
+            }
+
+            self.lua.scope(|scope| {
+                let bs = scope.create_userdata_ref_mut(sudoku)?;
+                if repeating {
+                    repeating = func.call::<_, bool>(bs)?;
+                    Ok(())
+                } else {
+                    func.call(bs)
+                }
+            })?;
+
+            if !repeating {
+                remove_keys.push(key);
+            } else {
+                table.set("target", time + interval as u128)?;
+            }
+        }
+
+        let funcs = self.lua.globals().get::<_, Table>("__WAIT_FUNCTIONS__")?;
+        for key in remove_keys {
+            funcs.raw_remove(key)?;
         }
 
         Ok(())
@@ -283,6 +349,10 @@ impl StatusBarItem for Eval {
         for scr in &self.scripts {
             if let Err(e) = scr.generic_game_callback(game, "__ON_UPDATE_FUNCTIONS__") {
                 error!("Lua 'Update' error: {e}");
+            }
+
+            if let Err(e) = scr.update_wait_funcs(game) {
+                error!("Lua 'WaitMS' error: {e}");
             }
         }
 
