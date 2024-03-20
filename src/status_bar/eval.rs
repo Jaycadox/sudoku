@@ -6,13 +6,13 @@ use macroquad::miniquad::window::screen_size;
 use macroquad::prelude::is_mouse_button_pressed;
 use macroquad::shapes::draw_rectangle;
 use macroquad::window::{screen_height, screen_width};
-use mlua::{Function, Lua, LuaOptions, StdLib, Table, Value};
-use mlua::Error::RuntimeError;
 use mlua::prelude::{LuaResult, LuaUserData, LuaUserDataMethods};
-use tracing::{debug, error, info, info_span, Level, span, trace, warn};
+use mlua::Error::RuntimeError;
+use mlua::{Function, Lua, LuaOptions, StdLib, Table, Value};
+use tracing::{debug, error, info, info_span, span, trace, warn, Level};
 
 use crate::config;
-use crate::draw_helper::{draw_and_measure_text, DrawingSettings, get_status_bar_height};
+use crate::draw_helper::{draw_and_measure_text, get_status_bar_height, DrawingSettings};
 use crate::status_bar::shorthands::list::ShorthandList;
 use crate::sudoku_game::SudokuGame;
 

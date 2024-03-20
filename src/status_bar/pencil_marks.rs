@@ -1,5 +1,5 @@
 use crate::{
-    draw_helper::{AppColour, draw_and_measure_text, DrawingSettings},
+    draw_helper::{draw_and_measure_text, AppColour, DrawingSettings},
     sudoku_game::SudokuGame,
 };
 
