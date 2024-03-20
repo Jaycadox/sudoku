@@ -1,9 +1,10 @@
 use std::default::Default;
 
 use macroquad::color::{Color, WHITE};
+use macroquad::input::{is_mouse_button_down, mouse_position, MouseButton};
 use macroquad::miniquad::window::screen_size;
+use macroquad::prelude::is_mouse_button_pressed;
 use macroquad::shapes::draw_rectangle;
-use macroquad::text::measure_text;
 use macroquad::window::{screen_height, screen_width};
 use mlua::{Function, Lua, LuaOptions, StdLib, Table, Value};
 use mlua::Error::RuntimeError;
@@ -96,6 +97,7 @@ impl LuaScript {
         scr.load_logging_lib()?;
         scr.load_events_lib()?;
         scr.load_drawing_lib(status_bar.drawing.clone())?;
+        scr.load_cursor_lib()?;
 
         scr.lua.load(code).set_name(name).exec()?;
 
@@ -216,6 +218,27 @@ print = info
         )?;
 
         self.lua.globals().set("drawing", drawing)?;
+        Ok(())
+    }
+
+    fn load_cursor_lib(&self) -> LuaResult<()> {
+        let cursor = self.lua.create_table()?;
+        cursor.set(
+            "position",
+            self.lua.create_function(|_, ()| Ok(mouse_position()))?,
+        )?;
+        cursor.set(
+            "down",
+            self.lua
+                .create_function(|_, ()| Ok(is_mouse_button_down(MouseButton::Left)))?,
+        )?;
+        cursor.set(
+            "pressed",
+            self.lua
+                .create_function(|_, ()| Ok(is_mouse_button_pressed(MouseButton::Left)))?,
+        )?;
+
+        self.lua.globals().set("cursor", cursor)?;
         Ok(())
     }
 

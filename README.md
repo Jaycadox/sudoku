@@ -256,6 +256,20 @@ unload, and the new script would attempt to load.
 * Draws text with the active display font at requested position and with requested colour. Note that `x, y` are pixel
   values and `r, g, b, a` are floats (0-1).
 
+### Cursor
+
+#### `cursor.position() -> (int, int)`
+
+* Returns x, y position of cursor in pixels
+
+#### `cursor.down() -> boolean`
+
+* Returns true if the left mouse button is down
+
+#### `cursor.pressed() -> boolean`
+
+* Returns true if the left mouse button was pressed down on the same frame
+
 ### Game (userdata)
 
 #### `game:pretty_board_string() -> string`
