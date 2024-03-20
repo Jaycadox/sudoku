@@ -1,11 +1,13 @@
-use tracing::{span, trace, Level};
+use tracing::{Level, span, trace};
 
-use crate::status_bar::eval::Eval;
-use crate::status_bar::find::Find;
+use crate::{config, shorthand};
 use crate::status_bar::{
     background_image::BackgroundImage, colour_overwrite::ColourOverwrite, font::Font,
     hard_reset::HardReset, padding::Padding, pencil_marks::PencilMarks,
 };
+use crate::status_bar::eval::Eval;
+use crate::status_bar::find::Find;
+use crate::status_bar::shorthands::list::ShorthandList;
 
 use super::{
     board_gen::BoardGen, cpu_solve::SolveTask, fps::Fps, on_board_init::OnBoardInit, StatusBarItem,
@@ -26,6 +28,14 @@ impl StatusBarItem for BuiltinAdd {
     ) {
         let span = span!(Level::INFO, "BuiltinAddActivate");
         let _enter = span.enter();
+
+        if status_bar.buffer == "__show_config" {
+            let config_dir = config::get_file_path("");
+            if let Err(e) = opener::open(config_dir) {
+                status_bar.buffer = format!("Error opening config dir: {e}");
+            }
+            return;
+        }
 
         trace!(
             "Attempting to add items from input: '{}'",
@@ -61,5 +71,9 @@ impl StatusBarItem for BuiltinAdd {
 
     fn display_mode(&self) -> super::StatusBarDisplayMode {
         super::StatusBarDisplayMode::None
+    }
+
+    fn shorthands(&self) -> Option<ShorthandList> {
+        shorthand!((r"^config$", "__show_config"))
     }
 }

@@ -37,6 +37,11 @@ a new board, perform the following
 | Enter                       | Runs the command in the buffer                                    |
 | Left control + LShift + tab | Hard reset, reloads config                                        |
 
+### Open config directory
+
+Enter buffer edit mode by pressing `Control`, then type `config` and press enter. A file explorer at the config
+directory should have opened.
+
 ### Status bar modules
 
 #### `BuiltinAdd`

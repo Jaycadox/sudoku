@@ -19,6 +19,7 @@ macroquad = "0.4.4"
 mlua = { version = "0.9.6", features = ["luau"] }
 ndarray = "0.15.6"
 num_cpus = "1.16.0"
+opener = "0.6.1"
 rand = "0.8.5"
 regex-lite = "0.1.5"
 threadpool = "1.8.1"
