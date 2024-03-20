@@ -87,9 +87,19 @@ impl LuaScript {
             name: name.to_string(),
         };
 
-        scr.lua.globals().set(
+        scr.load_internal_lib()?;
+        scr.load_event_lib()?;
+        scr.load_events_lib()?;
+
+        scr.lua.load(code).set_name(name).exec()?;
+
+        Ok(scr)
+    }
+
+    fn load_internal_lib(&self) -> LuaResult<()> {
+        self.lua.globals().set(
             "__systime_ms__",
-            scr.lua.create_function(move |_, ()| {
+            self.lua.create_function(move |_, ()| {
                 let time = std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
                     .map(|x| x.as_millis())
@@ -98,62 +108,11 @@ impl LuaScript {
             })?,
         )?;
 
-        let name_2 = name.to_string();
-        scr.lua.globals().set(
-            "info",
-            scr.lua.create_function::<String, (), _>(move |_, text| {
-                let span = info_span!("LUA");
-                let _enter = span.enter();
-                info!("{}: {}", name_2, text);
-                Ok(())
-            })?,
-        )?;
+        Ok(())
+    }
 
-        let name_2 = name.to_string();
-        scr.lua.globals().set(
-            "warn",
-            scr.lua.create_function::<String, (), _>(move |_, text| {
-                let span = info_span!("LUA");
-                let _enter = span.enter();
-                warn!("{}: {}", name_2, text);
-                Ok(())
-            })?,
-        )?;
-
-        let name_2 = name.to_string();
-        scr.lua.globals().set(
-            "error",
-            scr.lua.create_function::<String, (), _>(move |_, text| {
-                let span = info_span!("LUA");
-                let _enter = span.enter();
-                error!("{}: {}", name_2, text);
-                Ok(())
-            })?,
-        )?;
-
-        let name_2 = name.to_string();
-        scr.lua.globals().set(
-            "debug",
-            scr.lua.create_function::<String, (), _>(move |_, text| {
-                let span = info_span!("LUA");
-                let _enter = span.enter();
-                debug!("{}: {}", name_2, text);
-                Ok(())
-            })?,
-        )?;
-
-        let name_2 = name.to_string();
-        scr.lua.globals().set(
-            "trace",
-            scr.lua.create_function::<String, (), _>(move |_, text| {
-                let span = info_span!("LUA");
-                let _enter = span.enter();
-                trace!("{}: {}", name_2, text);
-                Ok(())
-            })?,
-        )?;
-
-        scr.lua
+    fn load_events_lib(&self) -> LuaResult<()> {
+        self.lua
             .load(
                 r#"
 events = {}
@@ -186,12 +145,68 @@ end
 print = info
 "#,
             )
-            .exec()?;
-
-        scr.lua.load(code).set_name(name).exec()?;
-
-        Ok(scr)
+            .exec()
     }
+
+    fn load_event_lib(&self) -> LuaResult<()> {
+        let name_2 = self.name.to_string();
+        self.lua.globals().set(
+            "info",
+            self.lua.create_function::<String, (), _>(move |_, text| {
+                let span = info_span!("LUA");
+                let _enter = span.enter();
+                info!("{}: {}", name_2, text);
+                Ok(())
+            })?,
+        )?;
+
+        let name_2 = self.name.to_string();
+        self.lua.globals().set(
+            "warn",
+            self.lua.create_function::<String, (), _>(move |_, text| {
+                let span = info_span!("LUA");
+                let _enter = span.enter();
+                warn!("{}: {}", name_2, text);
+                Ok(())
+            })?,
+        )?;
+
+        let name_2 = self.name.to_string();
+        self.lua.globals().set(
+            "error",
+            self.lua.create_function::<String, (), _>(move |_, text| {
+                let span = info_span!("LUA");
+                let _enter = span.enter();
+                error!("{}: {}", name_2, text);
+                Ok(())
+            })?,
+        )?;
+
+        let name_2 = self.name.to_string();
+        self.lua.globals().set(
+            "debug",
+            self.lua.create_function::<String, (), _>(move |_, text| {
+                let span = info_span!("LUA");
+                let _enter = span.enter();
+                debug!("{}: {}", name_2, text);
+                Ok(())
+            })?,
+        )?;
+
+        let name_2 = self.name.to_string();
+        self.lua.globals().set(
+            "trace",
+            self.lua.create_function::<String, (), _>(move |_, text| {
+                let span = info_span!("LUA");
+                let _enter = span.enter();
+                trace!("{}: {}", name_2, text);
+                Ok(())
+            })?,
+        )?;
+
+        Ok(())
+    }
+
     fn generic_game_callback(&self, sudoku: &mut SudokuGame, name: &str) -> LuaResult<()> {
         let funcs = self.lua.globals().get::<_, Table>(name)?;
 
