@@ -1,20 +1,22 @@
+use std::collections::HashSet;
+
+use macroquad::miniquad::window::screen_size;
+use macroquad::prelude::*;
+use tracing::{debug, span, trace, warn, Level};
+
+use draw_helper::*;
+use input_helper::*;
+use status_bar::{DrawHookAction, DrawHookData, StatusBar, StatusBarItemStatus};
+use sudoku_game::SudokuGame;
+
+use crate::sudoku_game::ResetSignal;
+
 mod config;
 mod draw_helper;
 mod input_helper;
 mod status_bar;
 mod sudoku_game;
 mod task_status;
-
-use draw_helper::*;
-use input_helper::*;
-use macroquad::miniquad::window::screen_size;
-use macroquad::prelude::*;
-use status_bar::{DrawHookAction, DrawHookData, StatusBar, StatusBarItemStatus};
-use std::collections::HashSet;
-use sudoku_game::SudokuGame;
-use tracing::{debug, span, trace, warn, Level};
-
-use crate::sudoku_game::ResetSignal;
 
 fn draw_sudoku(game: &mut SudokuGame, drawing: &DrawingSettings, status_bar: &mut StatusBar) {
     let span = span!(Level::INFO, "DrawSudoku");
@@ -108,6 +110,11 @@ fn draw_sudoku(game: &mut SudokuGame, drawing: &DrawingSettings, status_bar: &mu
             } else {
                 change_selected_to_cursor = true;
             }
+        }
+
+        if matches!(key, Some(InputAction::Function(_))) || matches!(key, Some(InputAction::Reset))
+        {
+            change_selected_to_cursor = false;
         }
 
         if is_mouse_button_pressed(MouseButton::Left) || change_selected_to_cursor {
@@ -410,7 +417,7 @@ async fn main() {
 
     #[cfg(not(debug_assertions))]
     let subscriber = tracing_subscriber::FmtSubscriber::builder()
-        .with_max_level(Level::DEBUG)
+        .with_max_level(Level::INFO)
         .finish();
 
     tracing::subscriber::set_global_default(subscriber).unwrap();
