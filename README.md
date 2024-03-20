@@ -192,7 +192,8 @@ unload, and the new script would attempt to load.
 
 #### `debug(text: string)`
 
-* Prints your message to the console with the `DEBUG` level.
+* Prints your message to the console with the `DEBUG` level. Note that this will only print text to the console when the
+  application is compiled in `Debug` mode.
 
 #### `trace(text: string)`
 

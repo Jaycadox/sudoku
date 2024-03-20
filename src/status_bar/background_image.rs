@@ -3,7 +3,7 @@ use macroquad::{
     math::Vec2,
     texture::{draw_texture_ex, Image, Texture2D},
 };
-use tracing::{debug, error, info, span, trace, Level};
+use tracing::{debug, error, Level, span, trace};
 
 use crate::config;
 
@@ -55,7 +55,7 @@ impl StatusBarItem for BackgroundImage {
                 Ok(image) => {
                     let texture = Texture2D::from_image(&image);
                     self.image = Some(texture);
-                    info!("Loaded texture");
+                    debug!("Loaded texture");
                 }
                 Err(e) => {
                     error!("Image is not valid: {}", e);
