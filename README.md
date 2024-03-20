@@ -49,6 +49,7 @@ directory should have opened.
 * Syntax: `BuiltinAdd [module_name]`
 * `BuiltinAdd` is the only status bar module added for you automatically, and it can be used to add other status bar
   modules
+    * Shorthand: `+[module_name]`
 * It is invisible on the status bar
 
 #### `BackgroundImage`
@@ -146,7 +147,7 @@ directory should have opened.
 To use Lua scripting, `Eval` must be added to the status bar, this can be done by either:
 
 * Editing your `.sudokurc` to contain `BuiltinAdd Eval`
-* Opening the buffer editor by pressing `Control`, and by typing `BuiltinAdd Eval` (Note: this would need to be done
+* Opening the buffer editor by pressing `Control`, and by typing `+Eval` (Note: this would need to be done
   every reload/restart)
 
 There are two scripting modes, `Repl` and `File`.
