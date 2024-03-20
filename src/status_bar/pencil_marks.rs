@@ -1,5 +1,5 @@
 use crate::{
-    draw_helper::{draw_and_measure_text, AppColour, DrawingSettings},
+    draw_helper::{AppColour, draw_and_measure_text, DrawingSettings},
     sudoku_game::SudokuGame,
 };
 
@@ -68,7 +68,7 @@ impl StatusBarItem for PencilMarks {
                 })
                 .collect::<Vec<String>>();
 
-            let mut y_cursor = data.y + (data.w / 5.0) + padding;
+            let mut y_cursor = data.y + padding;
             for line in s {
                 draw_and_measure_text(
                     drawing,

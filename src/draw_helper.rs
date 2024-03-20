@@ -192,18 +192,22 @@ pub fn draw_and_measure_text(
     };
 
     let dim = measure_text(text, Some(&*font), (font_size * font_size_mul) as u16, 1.0);
+    let mut add_height = 0.0;
+    if width.is_some() || height.is_some() {
+        if let Some(width) = width {
+            x += width / 2.0;
+            x -= dim.width / 2.0;
+        }
 
-    if let Some(width) = width {
-        x += width / 2.0;
-        x -= dim.width / 2.0;
-    }
-
-    let mut add_height = dim.height;
-    if let Some(height) = height {
-        y += height / 2.0;
-        y -= dim.height / 2.0;
+        add_height = dim.height;
+        if let Some(height) = height {
+            y += height / 2.0;
+            y -= dim.height / 2.0;
+        } else {
+            add_height = 0.0;
+        }
     } else {
-        add_height = 0.0;
+        y += dim.height;
     }
 
     //draw_rectangle(x, y, dim.width, dim.height, macroquad::color::RED);

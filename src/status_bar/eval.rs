@@ -1,12 +1,17 @@
 use std::default::Default;
 
 use macroquad::color::{Color, WHITE};
+use macroquad::miniquad::window::screen_size;
+use macroquad::shapes::draw_rectangle;
+use macroquad::text::measure_text;
+use macroquad::window::{screen_height, screen_width};
 use mlua::{Function, Lua, LuaOptions, StdLib, Table, Value};
 use mlua::Error::RuntimeError;
 use mlua::prelude::{LuaResult, LuaUserData, LuaUserDataMethods};
 use tracing::{debug, error, info, info_span, Level, span, trace, warn};
 
 use crate::config;
+use crate::draw_helper::{draw_and_measure_text, DrawingSettings, get_status_bar_height};
 use crate::status_bar::shorthands::list::ShorthandList;
 use crate::sudoku_game::SudokuGame;
 
@@ -79,7 +84,7 @@ struct LuaScript {
 }
 
 impl LuaScript {
-    fn exec(name: &str, code: &str) -> LuaResult<LuaScript> {
+    fn exec(name: &str, code: &str, status_bar: &StatusBar) -> LuaResult<LuaScript> {
         let lua = Lua::new_with(StdLib::ALL_SAFE, LuaOptions::default())?;
 
         let scr = Self {
@@ -88,8 +93,9 @@ impl LuaScript {
         };
 
         scr.load_internal_lib()?;
-        scr.load_event_lib()?;
+        scr.load_logging_lib()?;
         scr.load_events_lib()?;
+        scr.load_drawing_lib(status_bar.drawing.clone())?;
 
         scr.lua.load(code).set_name(name).exec()?;
 
@@ -148,7 +154,72 @@ print = info
             .exec()
     }
 
-    fn load_event_lib(&self) -> LuaResult<()> {
+    fn load_drawing_lib(&self, draw_settings: DrawingSettings) -> LuaResult<()> {
+        let drawing = self.lua.create_table()?;
+
+        drawing.set(
+            "screen_size",
+            self.lua.create_function(|_, ()| Ok(screen_size()))?,
+        )?;
+
+        drawing.set(
+            "game_size",
+            self.lua.create_function(|_, ()| {
+                let (x, mut y) = screen_size();
+                y -= get_status_bar_height();
+
+                Ok((x, y))
+            })?,
+        )?;
+        drawing.set(
+            "game_origin",
+            self.lua.create_function(|_, ()| Ok((0.0f32, 0.0f32)))?,
+        )?;
+        drawing.set(
+            "status_bar_size",
+            self.lua.create_function(|_, ()| {
+                let (x, y) = (screen_width(), get_status_bar_height());
+                Ok((x, y))
+            })?,
+        )?;
+
+        drawing.set(
+            "status_bar_origin",
+            self.lua.create_function(|_, ()| {
+                let (x, y) = (0.0f32, screen_height() - get_status_bar_height());
+                Ok((x, y))
+            })?,
+        )?;
+        drawing.set(
+            "draw_rect",
+            self.lua.create_function(|_, (x, y, w, h, r, g, b, a)| {
+                draw_rectangle(x, y, w, h, Color::new(r, g, b, a));
+                Ok(())
+            })?,
+        )?;
+        drawing.set(
+            "draw_text",
+            self.lua
+                .create_function(move |_, (text, x, y, size, r, g, b, a)| {
+                    let text: String = text;
+                    draw_and_measure_text(
+                        &draw_settings,
+                        &text,
+                        x,
+                        y,
+                        size,
+                        Color::new(r, g, b, a),
+                        (None, None),
+                    );
+                    Ok(())
+                })?,
+        )?;
+
+        self.lua.globals().set("drawing", drawing)?;
+        Ok(())
+    }
+
+    fn load_logging_lib(&self) -> LuaResult<()> {
         let name_2 = self.name.to_string();
         self.lua.globals().set(
             "info",
@@ -282,7 +353,12 @@ impl LuaRun {
         }
     }
 
-    fn run(&self, item: &mut Eval, game: &mut SudokuGame) -> LuaResult<Option<String>> {
+    fn run(
+        &self,
+        item: &mut Eval,
+        game: &mut SudokuGame,
+        status_bar: &StatusBar,
+    ) -> LuaResult<Option<String>> {
         let span = span!(Level::INFO, "RunLua");
         let _enter = span.enter();
 
@@ -292,7 +368,7 @@ impl LuaRun {
         match self {
             LuaRun::File { .. } => {
                 info!("Executing Lua script: {name}...");
-                let scr = LuaScript::exec(&name, &code)?;
+                let scr = LuaScript::exec(&name, &code, status_bar)?;
                 scr.generic_game_callback(game, "__ON_INIT_FUNCTIONS__")?;
                 item.scripts.push(scr);
                 Ok(None)
@@ -348,7 +424,7 @@ impl StatusBarItem for Eval {
             },
         };
 
-        match code.run(self, game) {
+        match code.run(self, game, status_bar) {
             Ok(Some(result)) => {
                 status_bar.buffer = result;
             }

@@ -223,6 +223,39 @@ unload, and the new script would attempt to load.
 * Repeatedly nvokes callback after `ms` milliseconds, and provides the current `Game`. Callback function returns `true`
   to continue repeating, and `false` to stop.
 
+### Drawing
+
+#### `drawing.screen_size() -> (int, int)`
+
+* Returns size of screen/window (width, height) in pixels.
+
+#### `drawing.game_size() -> (int, int)`
+
+* Returns size of game (width, height) in pixels. In practice, this will return the size of the screen, minus the status
+  bar.
+
+#### `drawing.game_origin() -> (int, int)`
+
+* Returns the origin of the game (x, y) in pixels. In practice, this is usually (0, 0).
+
+#### `drawing.status_bar_size() -> (int, int)`
+
+* Returns the size of the status bar (width, height) in pixels.
+
+#### `drawing.status_bar_origin() -> (int, int)`
+
+* Returns the origin of the status bar (x, y) in pixels.
+
+#### `drawing.draw_rect(x: int, y: int, w: int, h: int, r: int, g: int, b: int, a: int)`
+
+* Draws a rectangle at the specified location of the specified size, and the specified colour. Note that `x, y, w, h`
+  are pixel values, and `r, g, b, a` are floats (0-1).
+
+#### `drawing.draw_text(text: string, x: int, y: int, r: int, g: int, b: int, a: int)`
+
+* Draws text with the active display font at requested position and with requested colour. Note that `x, y` are pixel
+  values and `r, g, b, a` are floats (0-1).
+
 ### Game (userdata)
 
 #### `game:pretty_board_string() -> string`
