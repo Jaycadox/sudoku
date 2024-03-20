@@ -3,7 +3,7 @@ use macroquad::{
     math::Vec2,
     texture::{draw_texture_ex, Image, Texture2D},
 };
-use tracing::{debug, error, Level, span, trace};
+use tracing::{debug, error, span, trace, Level};
 
 use crate::config;
 
