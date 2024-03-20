@@ -74,6 +74,6 @@ impl StatusBarItem for BuiltinAdd {
     }
 
     fn shorthands(&self) -> Option<ShorthandList> {
-        shorthand!((r"^config$", "__show_config"))
+        shorthand!((r"^config$", "__show_config"), (r"^\+(.+)", "$1"))
     }
 }
