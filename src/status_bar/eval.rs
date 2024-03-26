@@ -425,13 +425,11 @@ impl StatusBarItem for Eval {
                     return;
                 };
 
-                if let Some(idx) = self
+                if let Some((idx, _)) = self
                     .scripts
                     .iter()
                     .enumerate()
-                    .filter(|(_, x)| x.name == file_name)
-                    .map(|(i, _)| i)
-                    .next()
+                    .find(|(_, x)| x.name == file_name)
                 {
                     warn!("Script with name '{file_name}' is already loaded, unloading...");
                     self.scripts.remove(idx);
