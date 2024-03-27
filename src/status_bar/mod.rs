@@ -76,8 +76,8 @@ pub struct DrawHookData {
 }
 
 #[allow(dead_code)]
-pub enum StatusBarHookAction {
-    Continue,
+pub enum StatusBarHookAction<T> {
+    Continue(T),
     Stop,
 }
 
@@ -106,9 +106,9 @@ pub trait StatusBarItem {
         StatusBarDisplayMode::Normal
     }
 
-    fn background_draw_hook(&self, data: &DrawHookData) -> StatusBarHookAction {
+    fn background_draw_hook(&self, data: &DrawHookData) -> StatusBarHookAction<()> {
         let _ = data;
-        StatusBarHookAction::Continue
+        StatusBarHookAction::Continue(())
     }
 
     fn cell_text_draw_hook(
@@ -118,13 +118,13 @@ pub trait StatusBarItem {
         index: u8,
         value: u8,
         data: &DrawHookData,
-    ) -> StatusBarHookAction {
+    ) -> StatusBarHookAction<()> {
         let _ = data;
         let _ = value;
         let _ = index;
         let _ = drawing;
         let _ = game;
-        StatusBarHookAction::Continue
+        StatusBarHookAction::Continue(())
     }
 
     fn shorthands(&self) -> Option<ShorthandList> {
