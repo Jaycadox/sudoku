@@ -273,8 +273,17 @@ impl<'a> StatusBar<'a> {
             self.buffer.clear();
         }
 
-        self.command_history.push(og_command); // TODO: find if vec already contains item and move it back to the front
-
+        if let Some((idx, _)) = self
+            .command_history
+            .iter()
+            .enumerate()
+            .find(|(_, text)| *text == &og_command)
+        {
+            self.command_history.remove(idx);
+            self.command_history.push(og_command);
+        } else {
+            self.command_history.push(og_command);
+        }
         *self.items.get_mut(idx).unwrap() = item;
         Some(name_after.to_string()) // calling item.activate() could hypothetically result in a
                                      // changing of name
