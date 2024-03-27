@@ -248,6 +248,10 @@ unload, and the new script would attempt to load.
 
 * Returns the origin of the status bar (x, y) in pixels.
 
+#### `drawing.colour(name: string) -> (r, g, b, a)`
+
+* Returns rgba values for `AppColour` of `name`. See `ColourOverwrite` for names.
+
 #### `drawing.draw_rect(x: int, y: int, w: int, h: int, r: int, g: int, b: int, a: int)`
 
 * Draws a rectangle at the specified location of the specified size, and the specified colour. Note that `x, y, w, h`

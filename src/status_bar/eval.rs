@@ -1,4 +1,5 @@
 use std::default::Default;
+use std::str::FromStr;
 
 use macroquad::color::{Color, WHITE};
 use macroquad::input::{is_mouse_button_down, mouse_position, MouseButton};
@@ -11,10 +12,10 @@ use mlua::Error::RuntimeError;
 use mlua::{Function, Lua, LuaOptions, StdLib, Table, Value};
 use tracing::{debug, error, info, info_span, span, trace, warn, Level};
 
-use crate::config;
 use crate::draw_helper::{draw_text_in_bounds, get_status_bar_height, DrawingSettings};
 use crate::status_bar::shorthands::list::ShorthandList;
 use crate::sudoku_game::SudokuGame;
+use crate::{config, AppColour};
 
 use super::{cpu_solve, StatusBar, StatusBarItem};
 
@@ -192,6 +193,19 @@ print = info
                 let (x, y) = (0.0f32, screen_height() - get_status_bar_height());
                 Ok((x, y))
             })?,
+        )?;
+        let draw_settings_2 = draw_settings.clone();
+        drawing.set(
+            "colour",
+            self.lua
+                .create_function::<String, _, _>(move |_, col_name| {
+                    let Ok(colour) = AppColour::from_str(&col_name) else {
+                        return Err(RuntimeError("Invalid colour name".to_string()));
+                    };
+
+                    let colour = draw_settings_2.colour(colour);
+                    Ok((colour.r, colour.g, colour.b, colour.a))
+                })?,
         )?;
         drawing.set(
             "draw_rect",
