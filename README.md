@@ -67,7 +67,7 @@ directory should have opened.
 
 #### `ColourOverwrite`
 
-* Syntax: `ColourOverwite [colour_name] #[hex_colour]`
+* Syntax: `ColourOverwrite [colour_name] #[hex_colour]`
 * Sets app colour of `colour_name` to `hex_colour`
 * Valid colours:
     * Background
@@ -301,7 +301,7 @@ unload, and the new script would attempt to load.
   this and set
   for the original `Game`, if one wishes to modify the current board.
 
-#### game:is_solved() -> boolean
+#### `game:is_solved() -> boolean`
 
 * Returns whether the current game is in a solved state
 
