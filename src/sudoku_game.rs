@@ -111,6 +111,43 @@ impl SudokuGame {
         Some(cells)
     }
 
+    pub fn is_solved(&self) -> bool {
+        fn is_full<'a>(cells: impl Iterator<Item = &'a u8>) -> bool {
+            let cells = cells.into_iter().copied().collect::<Vec<_>>();
+            if cells.len() != 9 || cells.contains(&0) {
+                return false;
+            }
+
+            for i in 1..=9 {
+                if !cells.contains(&i) {
+                    return false;
+                }
+            }
+
+            true
+        }
+
+        for row in self.rows() {
+            if !is_full(row.iter()) {
+                return false;
+            }
+        }
+
+        for col in self.cols() {
+            if !is_full(col.iter()) {
+                return false;
+            }
+        }
+
+        for bx in self.boxes() {
+            if !is_full(bx.iter()) {
+                return false;
+            }
+        }
+
+        true
+    }
+
     fn generate_unradified(cells: &Array2<u8>) -> Vec<u8> {
         let span = span!(Level::INFO, "GenerateUnradified");
         let _enter = span.enter();

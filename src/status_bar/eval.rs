@@ -50,16 +50,7 @@ impl LuaUserData for SudokuGame {
 
         methods.add_method("board_string", |_, s, ()| Ok(s.board_string()));
         methods.add_method("solve", |_, s, ()| Ok(cpu_solve::solve(s)));
-        methods.add_method("is_solved", |_, s, ()| {
-            // This is, for the most part, a god awful way of calculating whether the game has been
-            // solved. Instead, it should be algorithmically determined by detecting if all cells
-            // are legal, and if the board is full.
-            let Some(solved) = cpu_solve::solve(s) else {
-                return Ok(false);
-            };
-
-            Ok(s.board_string() == solved.board_string())
-        });
+        methods.add_method("is_solved", |_, s, ()| Ok(s.is_solved()));
         methods.add_method_mut::<_, String, ()>("update_board_from_string", |_, s, inp| {
             let Some(grid) = SudokuGame::generate_cells_from_string(&inp) else {
                 return Err(RuntimeError("Invalid cell format".parse().unwrap()));
