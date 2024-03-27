@@ -60,12 +60,7 @@ impl StatusBarItem for PencilMarks {
         if not_in_sight.len() <= self.num_max as usize && value == 0 {
             let s = not_in_sight
                 .chunks(5)
-                .map(|chk| {
-                    chk.iter()
-                        .map(|x| x.to_string())
-                        .collect::<Vec<_>>()
-                        .join("")
-                })
+                .map(|chk| chk.iter().map(|x| x.to_string()).collect::<String>())
                 .collect::<Vec<String>>();
 
             let mut y_cursor = data.y + padding;
