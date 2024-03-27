@@ -43,6 +43,12 @@ impl Item for Fps {
             return;
         };
 
+        if target == 0 {
+            debug!("Removed FPS target");
+            self.target = None;
+            return;
+        }
+
         debug!("Set FPS target to: {}", target);
         self.target = Some(target);
     }
