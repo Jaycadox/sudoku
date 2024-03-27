@@ -32,7 +32,7 @@ pub struct DrawingSettings {
     font_size: Cell<f32>,
 }
 
-#[derive(Debug, Eq, Hash, PartialEq)]
+#[derive(Debug, Eq, Hash, PartialEq, Clone, Copy)]
 pub enum AppColour {
     Background,
     StatusBar,
@@ -120,17 +120,19 @@ impl DrawingSettings {
             AppColour::StatusBarSeparator => Color::from_rgba(30, 30, 30, 255),
             AppColour::StatusBarItemSelected => Color::from_rgba(200, 200, 255, 255),
             AppColour::StatusBarItemOkay => Color::from_rgba(0, 255, 0, 255),
-            AppColour::StatusBarItemInProgress => Color::from_rgba(255, 255, 0, 255),
+            AppColour::StatusBarItemInProgress | AppColour::StatusBarBufferEdit => {
+                Color::from_rgba(255, 255, 0, 255)
+            }
             AppColour::StatusBarItemError => Color::from_rgba(255, 0, 0, 255),
-            AppColour::StatusBarBufferEdit => Color::from_rgba(255, 255, 0, 255),
             AppColour::StatusBarItem => Color::from_rgba(255, 255, 255, 255),
-            AppColour::BoardBox => Color::from_rgba(255, 255, 255, 255),
+            AppColour::BoardBox | AppColour::BoardRadifiedCell => {
+                Color::from_rgba(255, 255, 255, 255)
+            }
             AppColour::BoardLine => Color::from_rgba(128, 128, 128, 255),
             AppColour::BoardCellBackground => Color::from_rgba(0, 0, 0, 0),
             AppColour::BoardSelectedCellBackground => Color::from_rgba(255, 255, 255, 124),
             AppColour::BoardHighlightedCellBackground => Color::from_rgba(255, 255, 255, 71),
             AppColour::BoardMousedCellBackground => Color::from_rgba(110, 110, 110, 255),
-            AppColour::BoardRadifiedCell => Color::from_rgba(255, 255, 255, 255),
             AppColour::BoardCorrectCell => Color::from_rgba(153, 153, 255, 255),
             AppColour::BoardIncorrectCell => Color::from_rgba(255, 153, 153, 255),
             AppColour::BoardUnknownCell => Color::from_rgba(213, 213, 213, 255),
@@ -150,15 +152,15 @@ impl DrawingSettings {
     }
 
     pub fn set_padding_target(&self, val: f32) {
-        self.padding_target.set(val)
+        self.padding_target.set(val);
     }
 
     pub fn set_padding_start(&self, val: f32) {
-        self.padding_start.set(val)
+        self.padding_start.set(val);
     }
 
     pub fn set_padding_speed(&self, val: f32) {
-        self.padding_speed.set(val)
+        self.padding_speed.set(val);
     }
 
     pub fn set_font(&self, font: Font) {

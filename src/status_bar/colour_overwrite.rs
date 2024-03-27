@@ -5,7 +5,7 @@ use tracing::{error, span, trace, Level};
 
 use crate::draw_helper::AppColour;
 
-use super::StatusBarItem;
+use super::Item;
 
 #[derive(Default)]
 pub struct ColourOverwrite;
@@ -22,7 +22,7 @@ fn parse_hex_color(hex: &str) -> Option<(u8, u8, u8, u8)> {
     }
 }
 
-impl StatusBarItem for ColourOverwrite {
+impl Item for ColourOverwrite {
     fn name(&self) -> &'static str {
         "ColourOverwrite"
     }
@@ -62,7 +62,7 @@ impl StatusBarItem for ColourOverwrite {
             .add_override(app_colour, Color::from_rgba(r, g, b, a));
     }
 
-    fn display_mode(&self) -> super::StatusBarDisplayMode {
-        super::StatusBarDisplayMode::None
+    fn display_mode(&self) -> super::DisplayMode {
+        super::DisplayMode::None
     }
 }

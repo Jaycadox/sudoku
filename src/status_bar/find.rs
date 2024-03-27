@@ -1,14 +1,14 @@
 use crate::shorthand;
-use crate::status_bar::shorthands::list::ShorthandList;
+use crate::status_bar::shorthands::list::List;
 use crate::sudoku_game::SudokuGame;
 use tracing::{span, Level};
 
-use super::StatusBarItem;
+use super::Item;
 
 #[derive(Default)]
 pub struct Find;
 
-impl StatusBarItem for Find {
+impl Item for Find {
     fn name(&self) -> &'static str {
         "Find"
     }
@@ -25,8 +25,7 @@ impl StatusBarItem for Find {
         let size = game.cells.shape()[1];
         let mut cursor_pos = game
             .selected_cell
-            .map(|x| SudokuGame::xy_pos_to_idx(x.0, x.1, size as u32))
-            .unwrap_or(0);
+            .map_or(0, |x| SudokuGame::xy_pos_to_idx(x.0, x.1, size as u32));
         let pos_auto_set = game.selected_cell.is_none();
 
         let mut direction = FindDirection::Ahead;
@@ -65,11 +64,11 @@ impl StatusBarItem for Find {
         }
     }
 
-    fn display_mode(&self) -> super::StatusBarDisplayMode {
-        super::StatusBarDisplayMode::NameOnly
+    fn display_mode(&self) -> super::DisplayMode {
+        super::DisplayMode::NameOnly
     }
 
-    fn shorthands(&self) -> Option<ShorthandList> {
+    fn shorthands(&self) -> Option<List> {
         shorthand![(r"^[\.]?\d$", "$0")]
     }
 }
@@ -97,13 +96,13 @@ fn find(
     has_defined_cursor: bool,
 ) -> Option<(u32, u32)> {
     let offset = direction.to_offset();
-    let mut i: i64 = start as i64;
+    let mut i: i64 = i64::from(start);
 
     if has_defined_cursor {
-        i += offset as i64;
+        i += i64::from(offset);
     }
 
-    while i >= 0 && i < game.cells.len() as i64 {
+    while i >= 0 && i < i64::try_from(game.cells.len()).unwrap() {
         let Some(num) = game.cells.iter().nth(i as usize) else {
             break;
         };
@@ -113,7 +112,7 @@ fn find(
             return Some(SudokuGame::idx_pos_to_xy(i as u32, size as u32));
         }
 
-        i += offset as i64;
+        i += i64::from(offset);
     }
 
     None

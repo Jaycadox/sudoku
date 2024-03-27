@@ -3,7 +3,7 @@ use crate::{
     sudoku_game::SudokuGame,
 };
 
-use super::{cpu_solve, DrawHookData, StatusBarItem};
+use super::{cpu_solve, DrawHookData, Item};
 
 pub struct PencilMarks {
     num_max: u8,
@@ -15,7 +15,7 @@ impl Default for PencilMarks {
     }
 }
 
-impl StatusBarItem for PencilMarks {
+impl Item for PencilMarks {
     fn name(&self) -> &'static str {
         "PencilMarks"
     }
@@ -33,8 +33,8 @@ impl StatusBarItem for PencilMarks {
         self.num_max = num_str;
     }
 
-    fn display_mode(&self) -> super::StatusBarDisplayMode {
-        super::StatusBarDisplayMode::None
+    fn display_mode(&self) -> super::DisplayMode {
+        super::DisplayMode::None
     }
 
     fn cell_text_draw_hook(
@@ -44,10 +44,10 @@ impl StatusBarItem for PencilMarks {
         index: u8,
         value: u8,
         data: &DrawHookData,
-    ) -> super::StatusBarHookAction<()> {
+    ) -> super::HookAction<()> {
         let in_sight = cpu_solve::get_occupied_numbers_at_cell(
             game,
-            SudokuGame::idx_pos_to_xy(index as u32, game.cells.shape()[1] as u32),
+            SudokuGame::idx_pos_to_xy(u32::from(index), game.cells.shape()[1] as u32),
         );
         let mut not_in_sight = vec![];
         for i in 1..=9 {
@@ -60,7 +60,7 @@ impl StatusBarItem for PencilMarks {
         if not_in_sight.len() <= self.num_max as usize && value == 0 {
             let s = not_in_sight
                 .chunks(5)
-                .map(|chk| chk.iter().map(|x| x.to_string()).collect::<String>())
+                .map(|chk| chk.iter().map(ToString::to_string).collect::<String>())
                 .collect::<Vec<String>>();
 
             let mut y_cursor = data.y + padding;
@@ -78,6 +78,6 @@ impl StatusBarItem for PencilMarks {
             }
         }
 
-        super::StatusBarHookAction::Continue(())
+        super::HookAction::Continue(())
     }
 }

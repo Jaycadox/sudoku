@@ -1,9 +1,9 @@
-use super::StatusBarItem;
+use super::Item;
 
 #[derive(Default)]
 pub struct Dummy;
 
-impl StatusBarItem for Dummy {
+impl Item for Dummy {
     fn name(&self) -> &'static str {
         "Dummy"
     }
@@ -15,7 +15,7 @@ impl StatusBarItem for Dummy {
     ) {
     }
 
-    fn display_mode(&self) -> super::StatusBarDisplayMode {
-        super::StatusBarDisplayMode::None
+    fn display_mode(&self) -> super::DisplayMode {
+        super::DisplayMode::None
     }
 }

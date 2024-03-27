@@ -1,13 +1,13 @@
 use tracing::{span, trace, Level};
 
-use super::StatusBarItem;
+use super::Item;
 
 #[derive(Default)]
 pub struct OnBoardInit {
     command_list: Vec<String>,
 }
 
-impl StatusBarItem for OnBoardInit {
+impl Item for OnBoardInit {
     fn name(&self) -> &'static str {
         "OnBoardInit"
     }
@@ -45,7 +45,7 @@ impl StatusBarItem for OnBoardInit {
             .enter_buffer_commands(&self.command_list.iter().map(|x| &x[..]).collect::<Vec<_>>());
     }
 
-    fn display_mode(&self) -> super::StatusBarDisplayMode {
-        super::StatusBarDisplayMode::None
+    fn display_mode(&self) -> super::DisplayMode {
+        super::DisplayMode::None
     }
 }

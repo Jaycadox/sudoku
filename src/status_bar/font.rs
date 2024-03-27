@@ -1,11 +1,11 @@
 use crate::{config, draw_helper::DrawingSettings};
 
-use super::StatusBarItem;
+use super::Item;
 
 #[derive(Default)]
 pub struct Font;
 
-impl StatusBarItem for Font {
+impl Item for Font {
     fn name(&self) -> &'static str {
         "Font"
     }
@@ -36,7 +36,7 @@ impl StatusBarItem for Font {
         status_bar.drawing.set_font_size(size);
     }
 
-    fn display_mode(&self) -> super::StatusBarDisplayMode {
-        super::StatusBarDisplayMode::None
+    fn display_mode(&self) -> super::DisplayMode {
+        super::DisplayMode::None
     }
 }

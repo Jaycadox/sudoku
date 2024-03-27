@@ -1,11 +1,11 @@
 use crate::sudoku_game::ResetSignal;
 
-use super::StatusBarItem;
+use super::Item;
 
 #[derive(Default)]
 pub struct HardReset;
 
-impl StatusBarItem for HardReset {
+impl Item for HardReset {
     fn name(&self) -> &'static str {
         "HardReset"
     }
@@ -18,7 +18,7 @@ impl StatusBarItem for HardReset {
         game.reset_signalled = ResetSignal::Hard;
     }
 
-    fn display_mode(&self) -> super::StatusBarDisplayMode {
-        super::StatusBarDisplayMode::NameOnly
+    fn display_mode(&self) -> super::DisplayMode {
+        super::DisplayMode::NameOnly
     }
 }

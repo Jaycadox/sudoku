@@ -1,3 +1,4 @@
+#![allow(clippy::similar_names)]
 use ndarray::{s, Array2, ArrayView, ArrayView2, Axis, Ix1};
 use tracing::{debug, error, instrument, span, trace, Level};
 
@@ -29,7 +30,7 @@ impl Clone for SudokuGame {
             selected_cell: self.selected_cell,
             reset_signalled: self.reset_signalled.clone(),
             padding_progress: 0.0,
-            input: Default::default(),
+            input: InputState::default(),
             wanted_commands: Vec::new(),
         }
     }
@@ -66,7 +67,7 @@ impl SudokuGame {
             selected_cell: None,
             reset_signalled: ResetSignal::None,
             padding_progress: 0.0,
-            input: Default::default(),
+            input: InputState::default(),
             wanted_commands: Vec::new(),
         }
     }
@@ -205,7 +206,7 @@ impl SudokuGame {
 
     pub(crate) fn board_string(&self) -> String {
         let mut buf = String::with_capacity(self.cells.len());
-        for cell in self.cells.iter() {
+        for cell in &self.cells {
             let cell = *cell;
             buf.push_str(&cell.to_string());
         }
@@ -213,11 +214,13 @@ impl SudokuGame {
         buf
     }
 
+    #[allow(clippy::inline_always)]
     #[inline(always)]
     pub fn xy_pos_to_idx(x: u32, y: u32, size: u32) -> u32 {
         y * size + x
     }
 
+    #[allow(clippy::inline_always)]
     #[inline(always)]
     pub fn idx_pos_to_xy(idx: u32, size: u32) -> (u32, u32) {
         let x = idx % size;

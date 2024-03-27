@@ -5,9 +5,9 @@ use tracing::{debug, error, span, trace, Level};
 
 use crate::draw_helper::AppColour;
 use crate::shorthand;
-use crate::status_bar::shorthands::list::ShorthandList;
+use crate::status_bar::shorthands::list::List;
 
-use super::{StatusBar, StatusBarItem};
+use super::{Item, StatusBar};
 
 #[derive(Default)]
 pub struct Fps {
@@ -16,7 +16,7 @@ pub struct Fps {
     last_delay: f64,
 }
 
-impl StatusBarItem for Fps {
+impl Item for Fps {
     fn name(&self) -> &'static str {
         "Fps"
     }
@@ -63,7 +63,8 @@ impl StatusBarItem for Fps {
 
         let indicator = if let (Some(last_frame), Some(target)) = (self.last_frame, self.target) {
             let total_frame_time_ms = Instant::now().duration_since(last_frame).as_millis();
-            let frame_time_ms = (total_frame_time_ms as i128 - self.last_delay as i128) as f64;
+            let frame_time_ms =
+                (i128::try_from(total_frame_time_ms).unwrap() - self.last_delay as i128) as f64;
             let target_frame_time_ms = 1000.0 / target as f64;
             if target_frame_time_ms > frame_time_ms {
                 let diff = target_frame_time_ms;
@@ -80,12 +81,12 @@ impl StatusBarItem for Fps {
         self.last_frame = Some(Instant::now());
         let output = format!("{}{}", get_fps(), indicator);
         (
-            format!("{:<4}", output),
+            format!("{output:<4}"),
             status_bar.drawing.colour(AppColour::StatusBarItem),
         )
     }
 
-    fn shorthands(&self) -> Option<ShorthandList> {
+    fn shorthands(&self) -> Option<List> {
         shorthand![(r"^(\d+)fps$", "$1")]
     }
 }

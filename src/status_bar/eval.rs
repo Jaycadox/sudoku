@@ -1,3 +1,4 @@
+#![allow(clippy::similar_names)]
 use std::default::Default;
 use std::str::FromStr;
 
@@ -13,11 +14,11 @@ use mlua::{Function, Lua, LuaOptions, StdLib, Table, Value};
 use tracing::{debug, error, info, info_span, span, trace, warn, Level};
 
 use crate::draw_helper::{draw_text_in_bounds, get_status_bar_height, DrawingSettings};
-use crate::status_bar::shorthands::list::ShorthandList;
+use crate::status_bar::shorthands::list::List;
 use crate::sudoku_game::SudokuGame;
 use crate::{config, AppColour};
 
-use super::{cpu_solve, StatusBar, StatusBarItem};
+use super::{cpu_solve, Item, StatusBar};
 
 impl LuaUserData for SudokuGame {
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
@@ -28,7 +29,7 @@ impl LuaUserData for SudokuGame {
 
         methods.add_method("cells", |lua, s, ()| {
             let table = lua.create_table()?;
-            for cell in s.cells.iter() {
+            for cell in &s.cells {
                 table.push(*cell)?;
             }
             Ok(table)
@@ -360,10 +361,10 @@ print = info
                 }
             })?;
 
-            if !repeating {
-                remove_keys.push(key);
-            } else {
+            if repeating {
                 table.set("target", time + interval as u128)?;
+            } else {
+                remove_keys.push(key);
             }
         }
 
@@ -379,8 +380,7 @@ print = info
 impl LuaRun {
     fn code(&self) -> String {
         match self {
-            LuaRun::File { code, .. } => code.to_string(),
-            LuaRun::Repl { code, .. } => code.to_string(),
+            LuaRun::File { code, .. } | LuaRun::Repl { code, .. } => code.to_string(),
         }
     }
 
@@ -420,7 +420,7 @@ impl LuaRun {
     }
 }
 
-impl StatusBarItem for Eval {
+impl Item for Eval {
     fn name(&self) -> &'static str {
         "Eval"
     }
@@ -484,7 +484,7 @@ impl StatusBarItem for Eval {
         }
 
         game.flush_wanted_commands(status_bar);
-        ("".to_string(), WHITE)
+        (String::new(), WHITE)
     }
 
     fn board_init(&mut self, game: &mut SudokuGame, _status_bar: &mut StatusBar) {
@@ -498,11 +498,11 @@ impl StatusBarItem for Eval {
         }
     }
 
-    fn display_mode(&self) -> super::StatusBarDisplayMode {
-        super::StatusBarDisplayMode::None
+    fn display_mode(&self) -> super::DisplayMode {
+        super::DisplayMode::None
     }
 
-    fn shorthands(&self) -> Option<ShorthandList> {
+    fn shorthands(&self) -> Option<List> {
         shorthand!((r"^=(.*)", "$1"))
     }
 }

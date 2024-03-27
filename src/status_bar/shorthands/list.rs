@@ -1,11 +1,11 @@
 use crate::status_bar::shorthands::Shorthand;
 
 #[derive(Default)]
-pub struct ShorthandList {
+pub struct List {
     shorthands: Vec<Shorthand>,
 }
 
-impl ShorthandList {
+impl List {
     pub fn add(mut self, pattern: &str, format: &str) -> Option<Self> {
         let sh = Shorthand::try_new(pattern, format)?;
         self.shorthands.push(sh);
@@ -15,15 +15,14 @@ impl ShorthandList {
     pub fn apply_to_string(&self, target: &str) -> Option<String> {
         self.shorthands
             .iter()
-            .filter_map(|x| x.apply_to_string(target))
-            .next()
+            .find_map(|x| x.apply_to_string(target))
     }
 }
 
 #[macro_export]
 macro_rules! shorthand {
     ($(($pattern:expr, $replacement:expr)),* $(,)?) => {{
-        let shorthand_list = Some(ShorthandList::default());
+        let shorthand_list = Some(List::default());
         $(
             let shorthand_list = shorthand_list.and_then(|x| x.add($pattern, $replacement));
         )*

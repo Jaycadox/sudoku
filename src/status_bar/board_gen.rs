@@ -5,9 +5,9 @@ use std::{
 
 use macroquad::rand::ChooseRandom;
 use rand::Rng;
-use tracing::{debug, error, span, trace, Level};
+use tracing::{debug, error, info_span, span, trace, Level};
 
-use crate::status_bar::shorthands::list::ShorthandList;
+use crate::status_bar::shorthands::list::List;
 use crate::{
     draw_helper::AppColour,
     shorthand,
@@ -16,7 +16,7 @@ use crate::{
     task_status::TaskStatus,
 };
 
-use super::{StatusBar, StatusBarItem};
+use super::{Item, StatusBar};
 
 enum BoardGenUpdate {
     FinalResult(Option<SudokuGame>),
@@ -38,126 +38,43 @@ pub struct BoardGen {
     should_stop: Arc<AtomicBool>,
 }
 
-impl Default for BoardGen {
-    fn default() -> Self {
-        let (_, rx) = std::sync::mpsc::channel();
-        let gen = Self {
-            thread: std::thread::spawn(|| {}),
-            rx,
-            status: BoardGenStatus::NotStarted,
-            should_stop: Arc::new(AtomicBool::new(false)),
-        };
-
-        while !gen.thread.is_finished() {}
-
-        gen
-    }
-}
-
-impl StatusBarItem for BoardGen {
-    fn name(&self) -> &'static str {
-        "BoardGen"
-    }
-
-    fn shorthands(&self) -> Option<ShorthandList> {
-        shorthand![(r"^[0-9.]{81}$", "$0")]
-    }
-
-    fn activated(&mut self, game: &mut SudokuGame, status_bar: &mut StatusBar) {
-        let span = span!(Level::INFO, "BoardGenActivate");
-        let _enter = span.enter();
-
-        if status_bar.buffer.len() == game.cells.len() {
-            trace!("Assuming user wants to create board from string");
-            let new_game = SudokuGame::new(Some(&status_bar.buffer));
-            game.reset(new_game);
-            return;
+impl BoardGen {
+    fn inner_solve(game: &mut SudokuGame, start_idx: usize, count: usize) -> bool {
+        if start_idx == count {
+            return false;
         }
 
-        if !self.thread.is_finished() {
-            self.should_stop
-                .store(true, std::sync::atomic::Ordering::Relaxed);
-            debug!("BoardGen thread is already active, signalling shutdown...");
-            return;
-        }
+        let cell = game.cells.iter_mut().nth(start_idx).unwrap();
+        let old_cell_val = *cell;
 
-        self.should_stop
-            .store(false, std::sync::atomic::Ordering::Relaxed);
+        let (sx, sy) = SudokuGame::idx_pos_to_xy(start_idx as u32, game.cells.shape()[1] as u32);
+        let occupied = cpu_solve::get_occupied_numbers_at_cell(game, (sx, sy));
 
-        trace!(
-            "Parsing requested number of remaining tiles: {}...",
-            status_bar.buffer
-        );
+        let mut numbers = (1..=9).collect::<Vec<_>>();
+        numbers.shuffle();
 
-        self.status = BoardGenStatus::Waiting(81);
-        let num_tiles_target = match status_bar.buffer.parse::<u8>() {
-            Ok(val) => val,
-            Err(_) => {
-                if !status_bar.buffer.is_empty() {
-                    error!("Failed to parse number of remaining tiles");
-                    status_bar.buffer = "BoardGen: failed to parse tiles target".to_string();
-                    self.status = BoardGenStatus::Failed;
-                    return;
+        let mut amount_valid = 0;
+        for num in numbers {
+            let valid = !occupied[num - 1];
+            if valid {
+                amount_valid += 1;
+                *game.cells.iter_mut().nth(start_idx).unwrap() = num as u8;
+                if BoardGen::inner_solve(game, start_idx + 1, count) {
+                    return true;
                 }
-                let default = 30;
-                trace!("Input is empty, so using default ({})", default);
-                default
-            }
-        };
-
-        let mut game = SudokuGame::new(None);
-        let count = game.cells.iter().count();
-
-        if num_tiles_target as usize >= count {
-            error!("Input is too large, max = {}", count);
-            status_bar.buffer = format!("BoardGen: tiles target too large. max={count}");
-            self.status = BoardGenStatus::Failed;
-            return;
-        }
-
-        fn inner(game: &mut SudokuGame, start_idx: usize, count: usize) -> bool {
-            if start_idx == count {
-                return false;
-            }
-
-            let cell = game.cells.iter_mut().nth(start_idx).unwrap();
-            let old_cell_val = *cell;
-
-            let (sx, sy) =
-                SudokuGame::idx_pos_to_xy(start_idx as u32, game.cells.shape()[1] as u32);
-            let occupied = cpu_solve::get_occupied_numbers_at_cell(game, (sx, sy));
-
-            let mut numbers = (1..=9).collect::<Vec<_>>();
-            numbers.shuffle();
-
-            let mut amount_valid = 0;
-            for num in numbers {
-                let valid = !occupied[num - 1];
-                if valid {
-                    amount_valid += 1;
-                    *game.cells.iter_mut().nth(start_idx).unwrap() = num as u8;
-                    if inner(game, start_idx + 1, count) {
-                        return true;
-                    }
-                    if start_idx != count - 1 {
-                        *game.cells.iter_mut().nth(start_idx).unwrap() = old_cell_val;
-                    }
+                if start_idx != count - 1 {
+                    *game.cells.iter_mut().nth(start_idx).unwrap() = old_cell_val;
                 }
             }
-            amount_valid == 1 && start_idx == count - 1
         }
+        amount_valid == 1 && start_idx == count - 1
+    }
 
-        {
-            let span = span!(Level::INFO, "GenerateFilled");
-            let _enter = span.enter();
-            trace!("Starting filled board generation...");
-            inner(&mut game, 0, count);
-        }
-
+    fn start_solve_task(&mut self, count: usize, num_tiles_target: u8, mut game: SudokuGame) {
         let (tx, rx) = std::sync::mpsc::channel();
         self.rx = rx;
 
-        let span = span.clone();
+        let span = info_span!("Prune");
         let should_stop = Arc::clone(&self.should_stop);
         self.thread = std::thread::spawn(move || {
             let _parent_enter = span.enter();
@@ -219,15 +136,13 @@ impl StatusBarItem for BoardGen {
                             .iter()
                             .nth(random_tile_idx)
                             .unwrap()
-                            != solved_game.cells.iter().nth(random_tile_idx).unwrap()
+                            == solved_game.cells.iter().nth(random_tile_idx).unwrap()
                         {
-                            *game.cells.iter_mut().nth(random_tile_idx).unwrap() = og_value;
-                        } else {
                             total_numbers -= 1;
                             if total_numbers % 10 == 0 {
                                 trace!(
                                     "{}% complete...",
-                                    ((num_tiles_target as f32 / total_numbers as f32) * 100.0)
+                                    ((f32::from(num_tiles_target) / total_numbers as f32) * 100.0)
                                         as u32
                                 );
                             }
@@ -238,12 +153,14 @@ impl StatusBarItem for BoardGen {
                             previous_states.push((game.clone(), total_numbers));
 
                             attempted_cells.clear();
+                        } else {
+                            *game.cells.iter_mut().nth(random_tile_idx).unwrap() = og_value;
                         }
                     }
                     TaskStatus::Failed => {
                         *game.cells.iter_mut().nth(random_tile_idx).unwrap() = og_value;
                     }
-                    _ => panic!("should be impossible"),
+                    TaskStatus::Waiting(_) => panic!("should be impossible"),
                 }
             }
 
@@ -252,6 +169,93 @@ impl StatusBarItem for BoardGen {
             tx.send(BoardGenUpdate::FinalResult(Some(game.clone())))
                 .unwrap();
         });
+    }
+}
+
+impl Default for BoardGen {
+    fn default() -> Self {
+        let (_, rx) = std::sync::mpsc::channel();
+        let gen = Self {
+            thread: std::thread::spawn(|| {}),
+            rx,
+            status: BoardGenStatus::NotStarted,
+            should_stop: Arc::new(AtomicBool::new(false)),
+        };
+
+        while !gen.thread.is_finished() {}
+
+        gen
+    }
+}
+
+impl Item for BoardGen {
+    fn name(&self) -> &'static str {
+        "BoardGen"
+    }
+
+    fn shorthands(&self) -> Option<List> {
+        shorthand![(r"^[0-9.]{81}$", "$0")]
+    }
+
+    fn activated(&mut self, game: &mut SudokuGame, status_bar: &mut StatusBar) {
+        let span = span!(Level::INFO, "BoardGenActivate");
+        let _enter = span.enter();
+
+        if status_bar.buffer.len() == game.cells.len() {
+            trace!("Assuming user wants to create board from string");
+            let new_game = SudokuGame::new(Some(&status_bar.buffer));
+            game.reset(new_game);
+            return;
+        }
+
+        if !self.thread.is_finished() {
+            self.should_stop
+                .store(true, std::sync::atomic::Ordering::Relaxed);
+            debug!("BoardGen thread is already active, signalling shutdown...");
+            return;
+        }
+
+        self.should_stop
+            .store(false, std::sync::atomic::Ordering::Relaxed);
+
+        trace!(
+            "Parsing requested number of remaining tiles: {}...",
+            status_bar.buffer
+        );
+
+        self.status = BoardGenStatus::Waiting(81);
+        let num_tiles_target = if let Ok(val) = status_bar.buffer.parse::<u8>() {
+            val
+        } else {
+            if !status_bar.buffer.is_empty() {
+                error!("Failed to parse number of remaining tiles");
+                status_bar.buffer = "BoardGen: failed to parse tiles target".to_string();
+                self.status = BoardGenStatus::Failed;
+                return;
+            }
+            let default = 30;
+            trace!("Input is empty, so using default ({})", default);
+            default
+        };
+
+        let mut game = SudokuGame::new(None);
+        let count = game.cells.iter().count();
+
+        if num_tiles_target as usize >= count {
+            error!("Input is too large, max = {}", count);
+            status_bar.buffer = format!("BoardGen: tiles target too large. max={count}");
+            self.status = BoardGenStatus::Failed;
+            return;
+        }
+
+        {
+            let span = span!(Level::INFO, "GenerateFilled");
+            let _enter = span.enter();
+            trace!("Starting filled board generation...");
+            BoardGen::inner_solve(&mut game, 0, count);
+        }
+
+        self.start_solve_task(count, num_tiles_target, game);
     }
 
     fn update(
@@ -298,17 +302,17 @@ impl StatusBarItem for BoardGen {
 
     fn board_init(&mut self, _game: &mut SudokuGame, _status_bar: &mut StatusBar) {
         let old_status = self.status.clone();
-        *self = Default::default();
+        *self = BoardGen::default();
         self.status = old_status;
     }
 
-    fn status(&mut self) -> super::StatusBarItemStatus {
+    fn status(&mut self) -> super::ItemStatus {
         match self.status {
             BoardGenStatus::NotStarted | BoardGenStatus::Done => {
-                super::StatusBarItemStatus::Ok(super::StatusBarItemOkData::None)
+                super::ItemStatus::Ok(super::ItemOkData::None)
             }
-            BoardGenStatus::Waiting(_) => super::StatusBarItemStatus::Waiting,
-            BoardGenStatus::Failed => super::StatusBarItemStatus::Err,
+            BoardGenStatus::Waiting(_) => super::ItemStatus::Waiting,
+            BoardGenStatus::Failed => super::ItemStatus::Err,
         }
     }
 }

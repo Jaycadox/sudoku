@@ -2,7 +2,7 @@ use tracing::{span, trace, Level};
 
 use crate::status_bar::eval::Eval;
 use crate::status_bar::find::Find;
-use crate::status_bar::shorthands::list::ShorthandList;
+use crate::status_bar::shorthands::list::List;
 use crate::status_bar::{
     background_image::BackgroundImage, colour_overwrite::ColourOverwrite, font::Font,
     hard_reset::HardReset, padding::Padding, pencil_marks::PencilMarks,
@@ -10,13 +10,13 @@ use crate::status_bar::{
 use crate::{config, shorthand};
 
 use super::{
-    board_gen::BoardGen, cpu_solve::SolveTask, fps::Fps, on_board_init::OnBoardInit, StatusBarItem,
+    board_gen::BoardGen, cpu_solve::SolveTask, fps::Fps, on_board_init::OnBoardInit, Item,
 };
 
 #[derive(Default)]
-pub struct BuiltinAdd;
+pub struct Add;
 
-impl StatusBarItem for BuiltinAdd {
+impl Item for Add {
     fn name(&self) -> &'static str {
         "BuiltinAdd"
     }
@@ -69,11 +69,11 @@ impl StatusBarItem for BuiltinAdd {
         trace!("Added {} item/s to status bar", count);
     }
 
-    fn display_mode(&self) -> super::StatusBarDisplayMode {
-        super::StatusBarDisplayMode::None
+    fn display_mode(&self) -> super::DisplayMode {
+        super::DisplayMode::None
     }
 
-    fn shorthands(&self) -> Option<ShorthandList> {
+    fn shorthands(&self) -> Option<List> {
         shorthand!((r"^config$", "__show_config"), (r"^\+(.+)", "$1"))
     }
 }

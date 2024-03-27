@@ -1,21 +1,25 @@
 use std::cmp::Ordering;
 use std::{collections::VecDeque, fmt::Display, time::Instant};
 
+use macroquad::window::screen_height;
 use macroquad::{
-    color::*,
+    color::Color,
     miniquad::window::screen_size,
     shapes::{draw_line, draw_rectangle},
 };
 use tracing::{debug, error, span, trace, warn, Level};
 
-use crate::status_bar::shorthands::list::ShorthandList;
+use crate::status_bar::shorthands::list::List;
 use crate::{
-    draw_helper::*,
+    draw_helper::{
+        draw_text_in_bounds, get_normal_line_width, get_status_bar_height, AppColour,
+        DrawingSettings,
+    },
     input_helper::{InputAction, InputActionChar, InputActionContext},
     sudoku_game::{ResetSignal, SudokuGame},
 };
 
-use self::{add::BuiltinAdd, dummy::Dummy};
+use self::{add::Add, dummy::Dummy};
 
 mod add;
 mod background_image;
@@ -35,33 +39,33 @@ pub mod shorthands;
 mod eval;
 
 #[allow(dead_code)]
-pub enum StatusBarItemOkData<'a> {
+pub enum ItemOkData<'a> {
     Game(&'a SudokuGame),
     None,
 }
 
-pub enum StatusBarItemStatus<'a> {
-    Ok(StatusBarItemOkData<'a>),
+pub enum ItemStatus<'a> {
+    Ok(ItemOkData<'a>),
     Waiting,
     Err,
 }
 
-impl<'a> Display for StatusBarItemStatus<'a> {
+impl<'a> Display for ItemStatus<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
             "{}",
             match self {
-                StatusBarItemStatus::Ok(_) => "Ok",
-                StatusBarItemStatus::Waiting => "Waiting",
-                StatusBarItemStatus::Err => "Error",
+                ItemStatus::Ok(_) => "Ok",
+                ItemStatus::Waiting => "Waiting",
+                ItemStatus::Err => "Error",
             }
         )
     }
 }
 
 #[allow(dead_code)]
-pub enum StatusBarDisplayMode {
+pub enum DisplayMode {
     Normal,
     NameOnly,
     StatusOnly,
@@ -76,41 +80,40 @@ pub struct DrawHookData {
 }
 
 #[allow(dead_code)]
-pub enum StatusBarHookAction<T> {
+pub enum HookAction<T> {
     Continue(T),
     Stop,
 }
 
-pub trait StatusBarItem {
+pub trait Item {
     fn name(&self) -> &'static str;
     fn activated(&mut self, game: &mut SudokuGame, status_bar: &mut StatusBar);
 
+    #[allow(unused_variables)]
     fn update(&mut self, game: &mut SudokuGame, status_bar: &mut StatusBar) -> (String, Color) {
-        let _ = game;
         (
-            "".to_string(),
+            String::new(),
             status_bar.drawing.colour(AppColour::StatusBarItemOkay),
         )
     }
 
-    fn board_init(&mut self, game: &mut SudokuGame, status_bar: &mut StatusBar) {
-        let _ = status_bar;
-        let _ = game;
+    #[allow(unused_variables)]
+    fn board_init(&mut self, game: &mut SudokuGame, status_bar: &mut StatusBar) {}
+
+    fn status(&mut self) -> ItemStatus {
+        ItemStatus::Ok(ItemOkData::None)
     }
 
-    fn status(&mut self) -> StatusBarItemStatus {
-        StatusBarItemStatus::Ok(StatusBarItemOkData::None)
+    fn display_mode(&self) -> DisplayMode {
+        DisplayMode::Normal
     }
 
-    fn display_mode(&self) -> StatusBarDisplayMode {
-        StatusBarDisplayMode::Normal
+    #[allow(unused_variables)]
+    fn background_draw_hook(&self, data: &DrawHookData) -> HookAction<()> {
+        HookAction::Continue(())
     }
 
-    fn background_draw_hook(&self, data: &DrawHookData) -> StatusBarHookAction<()> {
-        let _ = data;
-        StatusBarHookAction::Continue(())
-    }
-
+    #[allow(unused_variables)]
     fn cell_text_draw_hook(
         &self,
         drawing: &DrawingSettings,
@@ -118,33 +121,23 @@ pub trait StatusBarItem {
         index: u8,
         value: u8,
         data: &DrawHookData,
-    ) -> StatusBarHookAction<()> {
-        let _ = data;
-        let _ = value;
-        let _ = index;
-        let _ = drawing;
-        let _ = game;
-        StatusBarHookAction::Continue(())
+    ) -> HookAction<()> {
+        HookAction::Continue(())
     }
 
-    fn cell_text_colour_hook(
-        &self,
-        game: &SudokuGame,
-        index: u8,
-    ) -> Option<StatusBarHookAction<AppColour>> {
-        let _index = index;
-        let _game = game;
+    #[allow(unused_variables)]
+    fn cell_text_colour_hook(&self, game: &SudokuGame, index: u8) -> Option<HookAction<AppColour>> {
         None
     }
 
-    fn shorthands(&self) -> Option<ShorthandList> {
+    fn shorthands(&self) -> Option<List> {
         None
     }
 }
 
 pub struct StatusBar<'a> {
     time_started: Instant,
-    items: Vec<Box<dyn StatusBarItem>>,
+    items: Vec<Box<dyn Item>>,
     pub buffer: String,
     pub drawing: &'a DrawingSettings,
     commands_queue: VecDeque<String>,
@@ -157,29 +150,29 @@ impl<'a> StatusBar<'a> {
     pub fn new(drawing: &'a DrawingSettings) -> Self {
         Self {
             time_started: Instant::now(),
-            items: vec![Box::<BuiltinAdd>::default()],
+            items: vec![Box::<Add>::default()],
             buffer: String::new(),
             drawing,
             commands_queue: VecDeque::new(),
             current_command: None,
-            command_history: Default::default(),
+            command_history: Vec::default(),
             command_history_offset: 0,
         }
     }
 
     pub fn add<T>(&mut self)
     where
-        T: StatusBarItem + Default + 'static,
+        T: Item + Default + 'static,
     {
         self.items.push(Box::<T>::default());
     }
 
-    pub fn items(&self) -> impl Iterator<Item = &dyn StatusBarItem> {
-        self.items.iter().map(|x| x.as_ref())
+    pub fn items(&self) -> impl Iterator<Item = &dyn Item> {
+        self.items.iter().map(AsRef::as_ref)
     }
 
-    pub fn item_with_name(&mut self, name: &str) -> Option<&mut dyn StatusBarItem> {
-        for item in self.items.iter_mut() {
+    pub fn item_with_name(&mut self, name: &str) -> Option<&mut dyn Item> {
+        for item in &mut self.items {
             if item.name().to_lowercase() == name.to_lowercase() {
                 return Some(item.as_mut());
             }
@@ -206,7 +199,7 @@ impl<'a> StatusBar<'a> {
 
         let len = self.items.len();
         for idx in 0..len {
-            let mut dummy_item: Box<dyn StatusBarItem + 'static> = Box::<Dummy>::default();
+            let mut dummy_item: Box<dyn Item + 'static> = Box::<Dummy>::default();
 
             let Some(item) = self.items.get_mut(idx) else {
                 continue;
@@ -242,7 +235,7 @@ impl<'a> StatusBar<'a> {
 
         let mut buffer = command_words.collect::<Vec<_>>().join(" ");
 
-        let mut dummy_item: Box<dyn StatusBarItem + 'static> = Box::<Dummy>::default();
+        let mut dummy_item: Box<dyn Item + 'static> = Box::<Dummy>::default();
         let mut idx = self.index_with_name(command_name);
 
         if idx.is_none() {
@@ -301,7 +294,7 @@ impl<'a> StatusBar<'a> {
                     // Commands won't wait for eachother, this
                     // means the application loads faster, but I might in the future add a
                     // syntactic way of specifying this behaviour
-                    StatusBarItemStatus::Waiting => {}
+                    ItemStatus::Waiting => {}
                     x => {
                         trace!(
                             "Command with name '{}' finished with status: {}",
@@ -324,9 +317,9 @@ impl<'a> StatusBar<'a> {
                 self.current_command = Some(cmd_name.clone());
                 if let Some(item) = self.item_with_name(&cmd_name) {
                     match item.status() {
-                        StatusBarItemStatus::Err => Err(cmd_name)?,
-                        StatusBarItemStatus::Waiting => return Ok(()),
-                        StatusBarItemStatus::Ok(_) => continue,
+                        ItemStatus::Err => Err(cmd_name)?,
+                        ItemStatus::Waiting => return Ok(()),
+                        ItemStatus::Ok(_) => continue,
                     };
                 } else {
                     warn!("Unable to query status of command: '{}'", cmd_name);
@@ -377,43 +370,7 @@ impl<'a> StatusBar<'a> {
 
         let mut i = 0;
         for raw_idx in 0..self.items.len() {
-            let mut dummy_item: Box<dyn StatusBarItem + 'static> = Box::<Dummy>::default();
-
-            let item = self.items.get_mut(raw_idx).unwrap();
-            std::mem::swap(item, &mut dummy_item);
-            let mut item = dummy_item;
-
-            let display_mode = item.display_mode();
-            let display = !matches!(display_mode, StatusBarDisplayMode::None);
-
-            if display
-                && InputAction::is_function_pressed(
-                    i + 1,
-                    if game.input.enter_buffer {
-                        InputActionContext::Buffer
-                    } else {
-                        InputActionContext::Generic
-                    },
-                    &game.input,
-                )
-            {
-                debug!(
-                    "Activated status bar item via manual input: {}",
-                    item.name()
-                );
-                game.input.enter_buffer = false;
-                let before = self.buffer.clone();
-                item.activated(game, self);
-                if before == self.buffer {
-                    self.buffer.clear();
-                }
-            }
-
-            if display {
-                i += 1;
-            }
-
-            self.items[raw_idx] = item;
+            self.process_item(raw_idx, &mut i, game);
         }
 
         if let Some(InputAction::ClearBuffer) = InputAction::get_last_input(
@@ -470,7 +427,7 @@ impl<'a> StatusBar<'a> {
                         self.buffer = String::new();
                         self.command_history_offset = 0;
                     }
-                    _ => {}
+                    Ordering::Less => {}
                 };
 
                 if let Some(item) = self
@@ -496,7 +453,7 @@ impl<'a> StatusBar<'a> {
             Some(InputActionChar::Char(c)) => {
                 self.time_started = Instant::now();
                 if !ignore_next_input {
-                    self.buffer.push(c)
+                    self.buffer.push(c);
                 }
             }
             Some(InputActionChar::Backspace) => {
@@ -505,6 +462,46 @@ impl<'a> StatusBar<'a> {
             Some(InputActionChar::Clear) => self.buffer.clear(),
             None => {}
         };
+    }
+
+    fn process_item(&mut self, raw_idx: usize, i: &mut u8, game: &mut SudokuGame) {
+        let mut dummy_item: Box<dyn Item + 'static> = Box::<Dummy>::default();
+
+        let item = self.items.get_mut(raw_idx).unwrap();
+        std::mem::swap(item, &mut dummy_item);
+        let mut item = dummy_item;
+
+        let display_mode = item.display_mode();
+        let display = !matches!(display_mode, DisplayMode::None);
+
+        if display
+            && InputAction::is_function_pressed(
+                *i + 1,
+                if game.input.enter_buffer {
+                    InputActionContext::Buffer
+                } else {
+                    InputActionContext::Generic
+                },
+                &game.input,
+            )
+        {
+            debug!(
+                "Activated status bar item via manual input: {}",
+                item.name()
+            );
+            game.input.enter_buffer = false;
+            let before = self.buffer.clone();
+            item.activated(game, self);
+            if before == self.buffer {
+                self.buffer.clear();
+            }
+        }
+
+        if display {
+            *i += 1;
+        }
+
+        self.items[raw_idx] = item;
     }
 
     fn render(&mut self, game: &mut SudokuGame, drawing: &DrawingSettings) {
@@ -531,81 +528,14 @@ impl<'a> StatusBar<'a> {
         let cursor_y = start_y;
         let mut visible_index = 1;
         for i in 0..self.items.len() {
-            let item = self.items.get_mut(i).unwrap();
-
-            let mut dummy_item: Box<dyn StatusBarItem + 'static> = Box::<Dummy>::default();
-
-            let display_mode = item.display_mode();
-
-            std::mem::swap(item, &mut dummy_item);
-            let mut item = dummy_item;
-
-            if matches!(item.display_mode(), StatusBarDisplayMode::None) {
-                let _ = item.update(game, self);
-                self.items[i] = item;
-                continue;
-            }
-
-            let font_color = if InputAction::is_function_down(
-                visible_index as u8,
-                InputActionContext::Generic,
-                &game.input,
-            ) {
-                drawing.colour(AppColour::StatusBarItemSelected)
-            } else {
-                drawing.colour(AppColour::StatusBarItem)
-            };
-
-            visible_index += 1;
-            let (text, color) = item.update(game, self);
-
-            if matches!(
-                display_mode,
-                StatusBarDisplayMode::Normal | StatusBarDisplayMode::NameOnly
-            ) {
-                let (suffix, font_color) = if let StatusBarDisplayMode::Normal = display_mode {
-                    (" ::", font_color)
-                } else {
-                    ("", color)
-                };
-                let bounds = draw_text_in_bounds(
-                    drawing,
-                    &format!("{}{}", item.name(), suffix),
-                    cursor_x,
-                    cursor_y,
-                    font_size,
-                    font_color,
-                    (None, Some(status_bar_height)),
-                );
-                cursor_x += bounds.0 + 8.0;
-            }
-            if matches!(
-                display_mode,
-                StatusBarDisplayMode::Normal | StatusBarDisplayMode::StatusOnly
-            ) {
-                let bounds = draw_text_in_bounds(
-                    drawing,
-                    &text,
-                    cursor_x,
-                    cursor_y,
-                    font_size,
-                    color,
-                    (None, Some(status_bar_height)),
-                );
-                cursor_x += bounds.0;
-            }
-
-            cursor_x += 16.0;
-            draw_line(
-                cursor_x,
+            self.render_item(
+                (i, &mut visible_index),
+                game,
+                drawing,
+                (&mut cursor_x, cursor_y),
+                font_size,
                 start_y,
-                cursor_x,
-                height,
-                get_normal_line_width(),
-                drawing.colour(AppColour::StatusBarSeparator),
             );
-            cursor_x += 16.0;
-            self.items[i] = item;
         }
 
         // Now that each status bar item has been drawn, we can start to draw the buffer input
@@ -656,7 +586,7 @@ impl<'a> StatusBar<'a> {
         // Next, if there's a command queue, we need to display it
         let mut commands_queue = self.commands_queue.iter().cloned().collect::<Vec<_>>();
         if let Some(active_command) = self.current_command.as_ref() {
-            commands_queue.push(format!("{}...", active_command));
+            commands_queue.push(format!("{active_command}..."));
         }
         commands_queue.reverse();
 
@@ -674,5 +604,81 @@ impl<'a> StatusBar<'a> {
 
             //cursor_x += bounds.0 + 3.0;
         }
+    }
+
+    #[allow(clippy::needless_pass_by_value)]
+    fn render_item(
+        &mut self,
+        index: (usize, &mut u32),
+        game: &mut SudokuGame,
+        drawing: &DrawingSettings,
+        cursor: (&mut f32, f32),
+        font_size: f32,
+        start_y: f32,
+    ) {
+        let status_bar_height = get_status_bar_height();
+        let height = screen_height();
+
+        let item = self.items.get_mut(index.0).unwrap();
+        let mut dummy_item: Box<dyn Item + 'static> = Box::<Dummy>::default();
+        let display_mode = item.display_mode();
+        std::mem::swap(item, &mut dummy_item);
+        let mut item = dummy_item;
+        if matches!(item.display_mode(), DisplayMode::None) {
+            let _ = item.update(game, self);
+            self.items[index.0] = item;
+            return;
+        }
+        let font_color = if InputAction::is_function_down(
+            *index.1 as u8,
+            InputActionContext::Generic,
+            &game.input,
+        ) {
+            drawing.colour(AppColour::StatusBarItemSelected)
+        } else {
+            drawing.colour(AppColour::StatusBarItem)
+        };
+        *index.1 += 1;
+        let (text, color) = item.update(game, self);
+        if matches!(display_mode, DisplayMode::Normal | DisplayMode::NameOnly) {
+            let (suffix, font_color) = if let DisplayMode::Normal = display_mode {
+                (" ::", font_color)
+            } else {
+                ("", color)
+            };
+            let bounds = draw_text_in_bounds(
+                drawing,
+                &format!("{}{}", item.name(), suffix),
+                *cursor.0,
+                cursor.1,
+                font_size,
+                font_color,
+                (None, Some(status_bar_height)),
+            );
+            *cursor.0 += bounds.0 + 8.0;
+        }
+        if matches!(display_mode, DisplayMode::Normal | DisplayMode::StatusOnly) {
+            let bounds = draw_text_in_bounds(
+                drawing,
+                &text,
+                *cursor.0,
+                cursor.1,
+                font_size,
+                color,
+                (None, Some(status_bar_height)),
+            );
+            *cursor.0 += bounds.0;
+        }
+        *cursor.0 += 16.0;
+        draw_line(
+            *cursor.0,
+            start_y,
+            *cursor.0,
+            height,
+            get_normal_line_width(),
+            drawing.colour(AppColour::StatusBarSeparator),
+        );
+        *cursor.0 += 16.0;
+        self.items[index.0] = item;
     }
 }

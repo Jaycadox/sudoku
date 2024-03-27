@@ -1,9 +1,9 @@
-use super::StatusBarItem;
+use super::Item;
 
 #[derive(Default)]
 pub struct Padding;
 
-impl StatusBarItem for Padding {
+impl Item for Padding {
     fn name(&self) -> &'static str {
         "Padding"
     }
@@ -31,7 +31,7 @@ impl StatusBarItem for Padding {
         game.padding_progress = 0.0;
     }
 
-    fn display_mode(&self) -> super::StatusBarDisplayMode {
-        super::StatusBarDisplayMode::None
+    fn display_mode(&self) -> super::DisplayMode {
+        super::DisplayMode::None
     }
 }

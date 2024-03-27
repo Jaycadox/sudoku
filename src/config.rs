@@ -15,7 +15,7 @@ pub fn get_file_path(name: &str) -> PathBuf {
         .map(|dirs| {
             let config_dir = dirs.config_dir();
 
-            config_dir.join(name).to_path_buf()
+            config_dir.join(name).clone()
         })
         .expect("unable to find root config directory")
 }

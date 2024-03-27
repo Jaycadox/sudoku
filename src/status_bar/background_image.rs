@@ -7,7 +7,7 @@ use tracing::{debug, error, span, trace, Level};
 
 use crate::config;
 
-use super::StatusBarItem;
+use super::Item;
 
 pub struct BackgroundImage {
     image: Option<Texture2D>,
@@ -23,7 +23,7 @@ impl Default for BackgroundImage {
     }
 }
 
-impl StatusBarItem for BackgroundImage {
+impl Item for BackgroundImage {
     fn name(&self) -> &'static str {
         "BackgroundImage"
     }
@@ -76,14 +76,14 @@ impl StatusBarItem for BackgroundImage {
         let _enter = span.enter();
 
         (
-            "".to_string(),
+            String::new(),
             status_bar
                 .drawing
                 .colour(crate::draw_helper::AppColour::StatusBarItem),
         )
     }
 
-    fn background_draw_hook(&self, data: &super::DrawHookData) -> super::StatusBarHookAction<()> {
+    fn background_draw_hook(&self, data: &super::DrawHookData) -> super::HookAction<()> {
         if let Some(texture) = &self.image {
             draw_texture_ex(
                 texture,
@@ -98,12 +98,12 @@ impl StatusBarItem for BackgroundImage {
                     flip_y: false,
                     pivot: None,
                 },
-            )
+            );
         }
-        super::StatusBarHookAction::Continue(())
+        super::HookAction::Continue(())
     }
 
-    fn display_mode(&self) -> super::StatusBarDisplayMode {
-        super::StatusBarDisplayMode::None
+    fn display_mode(&self) -> super::DisplayMode {
+        super::DisplayMode::None
     }
 }

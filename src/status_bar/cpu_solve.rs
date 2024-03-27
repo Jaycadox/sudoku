@@ -11,12 +11,12 @@ use tracing::{error, span, trace, Level};
 use crate::{
     draw_helper::AppColour,
     input_helper::{InputAction, InputActionContext},
-    status_bar::{StatusBarItem, StatusBarItemOkData, StatusBarItemStatus},
+    status_bar::{Item, ItemOkData, ItemStatus},
     sudoku_game::SudokuGame,
     task_status::TaskStatus,
 };
 
-use super::{StatusBar, StatusBarHookAction};
+use super::{HookAction, StatusBar};
 
 pub struct SolveTask {
     _thread: JoinHandle<()>,
@@ -64,7 +64,7 @@ impl Default for SolveTask {
     }
 }
 
-impl StatusBarItem for SolveTask {
+impl Item for SolveTask {
     fn name(&self) -> &'static str {
         "CpuSolve"
     }
@@ -117,14 +117,12 @@ impl StatusBarItem for SolveTask {
         }
     }
 
-    fn status(&mut self) -> StatusBarItemStatus {
+    fn status(&mut self) -> ItemStatus {
         self.update_status();
         match self.get() {
-            TaskStatus::Done(game) => {
-                StatusBarItemStatus::Ok(StatusBarItemOkData::Game(game.as_ref()))
-            }
-            TaskStatus::Failed => StatusBarItemStatus::Err,
-            TaskStatus::Waiting(_) => StatusBarItemStatus::Waiting,
+            TaskStatus::Done(game) => ItemStatus::Ok(ItemOkData::Game(game.as_ref())),
+            TaskStatus::Failed => ItemStatus::Err,
+            TaskStatus::Waiting(_) => ItemStatus::Waiting,
         }
     }
 
@@ -132,16 +130,16 @@ impl StatusBarItem for SolveTask {
         &self,
         game: &SudokuGame,
         index: u8,
-    ) -> Option<super::StatusBarHookAction<AppColour>> {
+    ) -> Option<super::HookAction<AppColour>> {
         match &self.get() {
             &TaskStatus::Done(new_game) => {
                 let correct_cell = new_game.cells.iter().nth(index as usize)?;
                 let selected_cell = game.cells.iter().nth(index as usize)?;
 
                 if selected_cell == correct_cell {
-                    Some(StatusBarHookAction::Continue(AppColour::BoardCorrectCell))
+                    Some(HookAction::Continue(AppColour::BoardCorrectCell))
                 } else {
-                    Some(StatusBarHookAction::Continue(AppColour::BoardIncorrectCell))
+                    Some(HookAction::Continue(AppColour::BoardIncorrectCell))
                 }
             }
             _ => None,
@@ -154,7 +152,7 @@ pub fn solve(game: &SudokuGame) -> Option<SudokuGame> {
     let mut game = game.clone();
 
     solve_basic_inner(&mut game, 0);
-    solve_inner(&mut game, 0, pool, 0)
+    solve_inner(&mut game, 0, &pool, 0)
 }
 
 pub fn get_cells_in_box(game: &SudokuGame, box_pos: (u32, u32)) -> Vec<u32> {
@@ -208,17 +206,10 @@ pub fn get_cells_in_row(game: &SudokuGame, row: u32) -> Vec<u32> {
 // Algorithm to deduce certain tiles, a lot faster than solve inner but it can't
 // solve on its own, should speed up the backtrace algorithm
 fn solve_basic_inner(game: &mut SudokuGame, depth: usize) {
-    const APPLY_ON_ROWS_AND_COLS: bool = false; // seems to decrease performance
-
-    if depth > 1000 {
-        error!("solve basic inner stuck in recursion");
-        return;
-    }
-
     fn run_solve_stage(
         num: u8,
         game: &mut SudokuGame,
-        cell_group: Vec<u32>,
+        cell_group: &[u32],
         invalid_tiles: &[u32],
     ) -> bool {
         let size = game.cells.shape()[1];
@@ -240,13 +231,20 @@ fn solve_basic_inner(game: &mut SudokuGame, depth: usize) {
         }
     }
 
+    const APPLY_ON_ROWS_AND_COLS: bool = false; // seems to decrease performance
+
+    if depth > 1000 {
+        error!("solve basic inner stuck in recursion");
+        return;
+    }
+
     let mut made_change = false;
     for num in 1..=9 {
         let invalid_tiles = game.get_all_cells_which_see_number(num);
         for box_x in 0..3 {
             for box_y in 0..3 {
                 let cells_in_box = get_cells_in_box(game, (box_x, box_y));
-                if run_solve_stage(num, game, cells_in_box, &invalid_tiles) {
+                if run_solve_stage(num, game, &cells_in_box, &invalid_tiles) {
                     made_change = true;
                 }
             }
@@ -255,12 +253,12 @@ fn solve_basic_inner(game: &mut SudokuGame, depth: usize) {
         if APPLY_ON_ROWS_AND_COLS {
             for col_or_row in 0..9 {
                 let cells_in_row = get_cells_in_row(game, col_or_row);
-                if run_solve_stage(num, game, cells_in_row, &invalid_tiles) {
+                if run_solve_stage(num, game, &cells_in_row, &invalid_tiles) {
                     made_change = true;
                 }
 
                 let cells_in_col = get_cells_in_col(game, col_or_row);
-                if run_solve_stage(num, game, cells_in_col, &invalid_tiles) {
+                if run_solve_stage(num, game, &cells_in_col, &invalid_tiles) {
                     made_change = true;
                 }
             }
@@ -274,7 +272,7 @@ fn solve_basic_inner(game: &mut SudokuGame, depth: usize) {
 fn solve_inner(
     game: &mut SudokuGame,
     mut start_idx: usize,
-    thread_pool: Arc<Mutex<ThreadPool>>,
+    thread_pool: &Arc<Mutex<ThreadPool>>,
     depth: usize,
 ) -> Option<SudokuGame> {
     let size = game.cells.shape()[1] as u32;
@@ -300,7 +298,7 @@ fn solve_inner(
         for num in valid_moves {
             let old = game.cells[(cell_pos.1 as usize, cell_pos.0 as usize)];
             game.cells[(cell_pos.1 as usize, cell_pos.0 as usize)] = num as u8;
-            if let Some(game) = solve_inner(game, start_idx + 1, thread_pool.clone(), depth + 1) {
+            if let Some(game) = solve_inner(game, start_idx + 1, &thread_pool.clone(), depth + 1) {
                 return Some(game);
             }
             game.cells[(cell_pos.1 as usize, cell_pos.0 as usize)] = old;
@@ -321,7 +319,7 @@ fn solve_inner(
             thread_pool.lock().unwrap().execute(move || {
                 game.cells[(cell_pos.1 as usize, cell_pos.0 as usize)] = num as u8;
                 if let Some(game) =
-                    solve_inner(&mut game, start_idx + 1, thread_pool_2.clone(), depth + 1)
+                    solve_inner(&mut game, start_idx + 1, &thread_pool_2.clone(), depth + 1)
                 {
                     let _ = tx.send(SolveMessage::Done(game));
                 } else {

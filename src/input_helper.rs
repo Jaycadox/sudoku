@@ -110,8 +110,7 @@ impl InputAction {
         let typing_buffer = state.enter_buffer;
 
         match (typing_buffer, ctx) {
-            (true, InputActionContext::Buffer) => key,
-            (false, InputActionContext::Generic) => key,
+            (false, InputActionContext::Generic) | (true, InputActionContext::Buffer) => key,
             _ => None,
         }
     }
@@ -121,8 +120,7 @@ impl InputAction {
         let typing_buffer = state.enter_buffer;
 
         match (typing_buffer, ctx) {
-            (true, InputActionContext::Buffer) => key,
-            (false, InputActionContext::Generic) => key,
+            (false, InputActionContext::Generic) | (true, InputActionContext::Buffer) => key,
             _ => false,
         }
     }
