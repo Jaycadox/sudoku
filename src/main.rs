@@ -279,7 +279,7 @@ fn draw_sudoku(game: &mut SudokuGame, drawing: &DrawingSettings, status_bar: &mu
                     drawing.colour(AppColour::BoardRadifiedCell)
                 };
 
-                let _ = draw_and_measure_text(
+                let _ = draw_text_in_bounds(
                     drawing,
                     &format!("{cell}"),
                     start_x,

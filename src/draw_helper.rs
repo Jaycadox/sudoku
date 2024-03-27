@@ -171,7 +171,7 @@ impl DrawingSettings {
     }
 }
 
-pub fn draw_and_measure_text(
+pub fn draw_text_in_bounds(
     drawing: &DrawingSettings,
     text: &str,
     mut x: f32,

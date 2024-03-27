@@ -568,7 +568,7 @@ impl<'a> StatusBar<'a> {
                 } else {
                     ("", color)
                 };
-                let bounds = draw_and_measure_text(
+                let bounds = draw_text_in_bounds(
                     drawing,
                     &format!("{}{}", item.name(), suffix),
                     cursor_x,
@@ -583,7 +583,7 @@ impl<'a> StatusBar<'a> {
                 display_mode,
                 StatusBarDisplayMode::Normal | StatusBarDisplayMode::StatusOnly
             ) {
-                let bounds = draw_and_measure_text(
+                let bounds = draw_text_in_bounds(
                     drawing,
                     &text,
                     cursor_x,
@@ -616,7 +616,7 @@ impl<'a> StatusBar<'a> {
             drawing.colour(AppColour::StatusBarItem)
         };
 
-        let bounds = draw_and_measure_text(
+        let bounds = draw_text_in_bounds(
             drawing,
             &format!("> {}", self.buffer),
             cursor_x,
@@ -662,7 +662,7 @@ impl<'a> StatusBar<'a> {
 
         let queue_string = format!("{}: [{}]", commands_queue.len(), commands_queue.join(", "));
         if !commands_queue.is_empty() {
-            let _gobounds = draw_and_measure_text(
+            let _gobounds = draw_text_in_bounds(
                 drawing,
                 &queue_string,
                 cursor_x,
