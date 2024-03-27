@@ -413,8 +413,13 @@ impl LuaRun {
             }
             LuaRun::Repl { .. } => {
                 let lua = Lua::new_with(StdLib::ALL_SAFE, LuaOptions::default())?;
-                let chunk = lua.load(code).set_name(name);
-                chunk.eval::<String>().map(Some)
+                lua.scope(|ctx| {
+                    let ud_game = ctx.create_userdata_ref_mut(game)?;
+                    lua.globals().set("Game", ud_game)?;
+                    let chunk = lua.load(code).set_name(name);
+                    chunk.eval::<String>()
+                })
+                .map(Some)
             }
         }
     }

@@ -160,6 +160,7 @@ result to the buffer. Example usages:
 * After entering buffer edit mode, you can type `Eval 1+1`, and it'll output `2` into the buffer
 * The shorthand could also be used, whereby your buffer can start with `=`, and the text after will be piped into
   the `Eval` item. As such, `=1+1` will output `2` to the buffer
+* In a `Repl` context, you have access to a global variable called `Game`, which is of type `Game` (userdata)
 
 #### File
 
