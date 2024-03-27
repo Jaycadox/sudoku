@@ -44,7 +44,7 @@ impl StatusBarItem for PencilMarks {
         index: u8,
         value: u8,
         data: &DrawHookData,
-    ) -> super::DrawHookAction {
+    ) -> super::StatusBarHookAction {
         let in_sight = cpu_solve::get_occupied_numbers_at_cell(
             game,
             SudokuGame::idx_pos_to_xy(index as u32, game.cells.shape()[1] as u32),
@@ -83,6 +83,6 @@ impl StatusBarItem for PencilMarks {
             }
         }
 
-        super::DrawHookAction::Continue
+        super::StatusBarHookAction::Continue
     }
 }

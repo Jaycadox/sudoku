@@ -6,7 +6,7 @@ use tracing::{debug, span, trace, warn, Level};
 
 use draw_helper::*;
 use input_helper::*;
-use status_bar::{DrawHookAction, DrawHookData, StatusBar, StatusBarItemStatus};
+use status_bar::{DrawHookData, StatusBar, StatusBarHookAction, StatusBarItemStatus};
 use sudoku_game::SudokuGame;
 
 use crate::sudoku_game::ResetSignal;
@@ -57,7 +57,7 @@ fn draw_sudoku(game: &mut SudokuGame, drawing: &DrawingSettings, status_bar: &mu
 
     for item in status_bar.items() {
         let resp = item.background_draw_hook(&draw_hook_data);
-        if let DrawHookAction::Stop = resp {
+        if let StatusBarHookAction::Stop = resp {
             break;
         }
     }
@@ -245,7 +245,7 @@ fn draw_sudoku(game: &mut SudokuGame, drawing: &DrawingSettings, status_bar: &mu
 
             let mut cancelled = false;
             for item in status_bar.items() {
-                if let DrawHookAction::Stop = item.cell_text_draw_hook(
+                if let StatusBarHookAction::Stop = item.cell_text_draw_hook(
                     drawing,
                     game,
                     SudokuGame::xy_pos_to_idx(x as u32, y as u32, game.cells.shape()[1] as u32)

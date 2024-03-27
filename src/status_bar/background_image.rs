@@ -83,7 +83,7 @@ impl StatusBarItem for BackgroundImage {
         )
     }
 
-    fn background_draw_hook(&self, data: &super::DrawHookData) -> super::DrawHookAction {
+    fn background_draw_hook(&self, data: &super::DrawHookData) -> super::StatusBarHookAction {
         if let Some(texture) = &self.image {
             draw_texture_ex(
                 texture,
@@ -100,7 +100,7 @@ impl StatusBarItem for BackgroundImage {
                 },
             )
         }
-        super::DrawHookAction::Continue
+        super::StatusBarHookAction::Continue
     }
 
     fn display_mode(&self) -> super::StatusBarDisplayMode {
