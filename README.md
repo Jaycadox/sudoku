@@ -253,7 +253,7 @@ unload, and the new script would attempt to load.
 * Draws a rectangle at the specified location of the specified size, and the specified colour. Note that `x, y, w, h`
   are pixel values, and `r, g, b, a` are floats (0-1).
 
-#### `drawing.draw_text(text: string, x: int, y: int, r: int, g: int, b: int, a: int)`
+#### `drawing.draw_text(text: string, x: int, y: int, size: int, r: int, g: int, b: int, a: int)`
 
 * Draws text with the active display font at requested position and with requested colour. Note that `x, y` are pixel
   values and `r, g, b, a` are floats (0-1).
