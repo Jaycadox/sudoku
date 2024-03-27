@@ -297,6 +297,10 @@ unload, and the new script would attempt to load.
   this and set
   for the original `Game`, if one wishes to modify the current board.
 
+#### game:is_solved() -> boolean
+
+* Returns whether the current game is in a solved state
+
 #### `game:update_board_from_string(board: string)`
 
 * Sets the current game board state to the string board state, while keeping the list of ratified cells.

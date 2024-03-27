@@ -12,7 +12,7 @@ use mlua::{Function, Lua, LuaOptions, StdLib, Table, Value};
 use tracing::{debug, error, info, info_span, span, trace, warn, Level};
 
 use crate::config;
-use crate::draw_helper::{draw_and_measure_text, get_status_bar_height, DrawingSettings};
+use crate::draw_helper::{draw_text_in_bounds, get_status_bar_height, DrawingSettings};
 use crate::status_bar::shorthands::list::ShorthandList;
 use crate::sudoku_game::SudokuGame;
 
@@ -50,6 +50,16 @@ impl LuaUserData for SudokuGame {
 
         methods.add_method("board_string", |_, s, ()| Ok(s.board_string()));
         methods.add_method("solve", |_, s, ()| Ok(cpu_solve::solve(s)));
+        methods.add_method("is_solved", |_, s, ()| {
+            // This is, for the most part, a god awful way of calculating whether the game has been
+            // solved. Instead, it should be algorithmically determined by detecting if all cells
+            // are legal, and if the board is full.
+            let Some(solved) = cpu_solve::solve(s) else {
+                return Ok(false);
+            };
+
+            Ok(s.board_string() == solved.board_string())
+        });
         methods.add_method_mut::<_, String, ()>("update_board_from_string", |_, s, inp| {
             let Some(grid) = SudokuGame::generate_cells_from_string(&inp) else {
                 return Err(RuntimeError("Invalid cell format".parse().unwrap()));
@@ -204,7 +214,7 @@ print = info
             self.lua
                 .create_function(move |_, (text, x, y, size, r, g, b, a)| {
                     let text: String = text;
-                    draw_and_measure_text(
+                    draw_text_in_bounds(
                         &draw_settings,
                         &text,
                         x,
