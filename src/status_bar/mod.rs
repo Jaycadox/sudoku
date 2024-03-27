@@ -127,6 +127,16 @@ pub trait StatusBarItem {
         StatusBarHookAction::Continue(())
     }
 
+    fn cell_text_colour_hook(
+        &self,
+        game: &SudokuGame,
+        index: u8,
+    ) -> Option<StatusBarHookAction<AppColour>> {
+        let _index = index;
+        let _game = game;
+        None
+    }
+
     fn shorthands(&self) -> Option<ShorthandList> {
         None
     }

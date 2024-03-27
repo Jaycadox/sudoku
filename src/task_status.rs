@@ -1,3 +1,4 @@
+#[derive(Clone)]
 pub enum TaskStatus<T> {
     Done(Box<T>),
     Failed,

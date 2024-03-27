@@ -6,7 +6,7 @@ use tracing::{debug, span, trace, warn, Level};
 
 use draw_helper::*;
 use input_helper::*;
-use status_bar::{DrawHookData, StatusBar, StatusBarHookAction, StatusBarItemStatus};
+use status_bar::{DrawHookData, StatusBar, StatusBarHookAction};
 use sudoku_game::SudokuGame;
 
 use crate::sudoku_game::ResetSignal;
@@ -260,21 +260,21 @@ fn draw_sudoku(game: &mut SudokuGame, drawing: &DrawingSettings, status_bar: &mu
 
             if *cell != 0 && !cancelled {
                 let text_col = if unradified {
-                    let solver_value = status_bar.item_with_name("CpuSolve").map(|x| x.status());
-                    match solver_value {
-                        Some(StatusBarItemStatus::Ok(status_bar::StatusBarItemOkData::Game(
-                            solved,
-                        ))) => {
-                            let solved_cell = solved.cells[(y as usize, x as usize)];
-                            let our_cell = game.cells[(y as usize, x as usize)];
-                            if solved_cell == our_cell {
-                                drawing.colour(AppColour::BoardCorrectCell)
-                            } else {
-                                drawing.colour(AppColour::BoardIncorrectCell)
+                    let index =
+                        SudokuGame::xy_pos_to_idx(x as u32, y as u32, game.cells.shape()[0] as u32);
+                    let mut col = drawing.colour(AppColour::BoardUnknownCell);
+                    for item in status_bar.items() {
+                        if let Some(status) = item.cell_text_colour_hook(game, index as u8) {
+                            match status {
+                                StatusBarHookAction::Continue(colour) => {
+                                    col = drawing.colour(colour)
+                                }
+                                StatusBarHookAction::Stop => break,
                             }
                         }
-                        _ => drawing.colour(AppColour::BoardUnknownCell),
                     }
+
+                    col
                 } else {
                     drawing.colour(AppColour::BoardRadifiedCell)
                 };

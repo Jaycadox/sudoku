@@ -16,7 +16,7 @@ use crate::{
     task_status::TaskStatus,
 };
 
-use super::StatusBar;
+use super::{StatusBar, StatusBarHookAction};
 
 pub struct SolveTask {
     _thread: JoinHandle<()>,
@@ -39,14 +39,16 @@ impl SolveTask {
         }
     }
 
-    pub fn get(&mut self) -> &TaskStatus<SudokuGame> {
+    pub fn update_status(&mut self) {
         if let Ok(result) = self.rx.try_recv() {
             self.status = match result {
                 Some(game) => TaskStatus::<SudokuGame>::Done(Box::new(game)),
                 None => TaskStatus::<SudokuGame>::Failed,
             };
         }
+    }
 
+    pub fn get(&self) -> &TaskStatus<SudokuGame> {
         &self.status
     }
 }
@@ -72,6 +74,7 @@ impl StatusBarItem for SolveTask {
         _game: &mut SudokuGame,
         status_bar: &mut StatusBar,
     ) -> (String, macroquad::prelude::Color) {
+        self.update_status();
         match self.get() {
             TaskStatus::Done(_) => (
                 "done".to_string(),
@@ -99,6 +102,8 @@ impl StatusBarItem for SolveTask {
         let span = span!(Level::INFO, "SolveTaskActivated");
         let _enter = span.enter();
 
+        self.update_status();
+
         if InputAction::is_key_down(KeyCode::LeftShift, InputActionContext::Generic, &game.input)
             || status_bar.buffer == "run"
         {
@@ -113,10 +118,33 @@ impl StatusBarItem for SolveTask {
     }
 
     fn status(&mut self) -> StatusBarItemStatus {
+        self.update_status();
         match self.get() {
-            TaskStatus::Done(game) => StatusBarItemStatus::Ok(StatusBarItemOkData::Game(game)),
+            TaskStatus::Done(game) => {
+                StatusBarItemStatus::Ok(StatusBarItemOkData::Game(game.as_ref()))
+            }
             TaskStatus::Failed => StatusBarItemStatus::Err,
             TaskStatus::Waiting(_) => StatusBarItemStatus::Waiting,
+        }
+    }
+
+    fn cell_text_colour_hook(
+        &self,
+        game: &SudokuGame,
+        index: u8,
+    ) -> Option<super::StatusBarHookAction<AppColour>> {
+        match &self.get() {
+            &TaskStatus::Done(new_game) => {
+                let correct_cell = new_game.cells.iter().nth(index as usize)?;
+                let selected_cell = game.cells.iter().nth(index as usize)?;
+
+                if selected_cell == correct_cell {
+                    Some(StatusBarHookAction::Continue(AppColour::BoardCorrectCell))
+                } else {
+                    Some(StatusBarHookAction::Continue(AppColour::BoardIncorrectCell))
+                }
+            }
+            _ => None,
         }
     }
 }

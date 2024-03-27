@@ -209,7 +209,9 @@ impl StatusBarItem for BoardGen {
 
                 *game.cells.iter_mut().nth(random_tile_idx).unwrap() = 0;
                 let mut solve_task = SolveTask::new(&game);
-                while let TaskStatus::Waiting(_) = solve_task.get() {}
+                while let TaskStatus::Waiting(_) = solve_task.get() {
+                    solve_task.update_status();
+                }
                 match solve_task.get() {
                     TaskStatus::Done(solved_game) => {
                         if game_before_modification
