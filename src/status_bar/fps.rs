@@ -17,8 +17,8 @@ pub struct Fps {
 }
 
 impl Item for Fps {
-    fn name(&self) -> &'static str {
-        "Fps"
+    fn name(&self) -> String {
+        "Fps".to_string()
     }
 
     fn activated(

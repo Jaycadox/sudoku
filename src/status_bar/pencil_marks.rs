@@ -16,8 +16,8 @@ impl Default for PencilMarks {
 }
 
 impl Item for PencilMarks {
-    fn name(&self) -> &'static str {
-        "PencilMarks"
+    fn name(&self) -> String {
+        "PencilMarks".to_string()
     }
 
     fn activated(

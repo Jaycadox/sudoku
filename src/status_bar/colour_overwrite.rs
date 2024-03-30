@@ -23,8 +23,8 @@ fn parse_hex_color(hex: &str) -> Option<(u8, u8, u8, u8)> {
 }
 
 impl Item for ColourOverwrite {
-    fn name(&self) -> &'static str {
-        "ColourOverwrite"
+    fn name(&self) -> String {
+        "ColourOverwrite".to_string()
     }
 
     fn activated(

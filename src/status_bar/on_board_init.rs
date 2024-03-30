@@ -8,8 +8,8 @@ pub struct OnBoardInit {
 }
 
 impl Item for OnBoardInit {
-    fn name(&self) -> &'static str {
-        "OnBoardInit"
+    fn name(&self) -> String {
+        "OnBoardInit".to_string()
     }
 
     fn activated(

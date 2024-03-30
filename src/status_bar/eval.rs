@@ -2,7 +2,7 @@
 use std::default::Default;
 use std::str::FromStr;
 
-use macroquad::color::{Color, WHITE};
+use macroquad::color::Color;
 use macroquad::input::{is_mouse_button_down, mouse_position, MouseButton};
 use macroquad::miniquad::window::screen_size;
 use macroquad::prelude::is_mouse_button_pressed;
@@ -10,7 +10,7 @@ use macroquad::shapes::draw_rectangle;
 use macroquad::window::{screen_height, screen_width};
 use mlua::prelude::{LuaResult, LuaUserData, LuaUserDataMethods};
 use mlua::Error::RuntimeError;
-use mlua::{Function, Lua, LuaOptions, StdLib, Table, Value};
+use mlua::{FromLuaMulti, Function, Lua, LuaOptions, StdLib, Table, Value};
 use tracing::{debug, error, info, info_span, span, trace, warn, Level};
 
 use crate::draw_helper::{draw_text_in_bounds, get_status_bar_height, DrawingSettings};
@@ -18,7 +18,7 @@ use crate::status_bar::shorthands::list::List;
 use crate::sudoku_game::SudokuGame;
 use crate::{config, AppColour};
 
-use super::{cpu_solve, Item, StatusBar};
+use super::{cpu_solve, Item, ItemOkData, ItemStatus, StatusBar};
 
 impl LuaUserData for SudokuGame {
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
@@ -73,9 +73,7 @@ impl LuaUserData for SudokuGame {
 }
 
 #[derive(Default)]
-pub struct Eval {
-    scripts: Vec<LuaScript>,
-}
+pub struct Eval;
 
 enum LuaRun {
     File { code: String, name: String },
@@ -85,6 +83,90 @@ enum LuaRun {
 struct LuaScript {
     name: String,
     lua: Lua,
+}
+
+impl Item for LuaScript {
+    fn name(&self) -> String {
+        self.generic_single_callback::<String>(None, "__ON_NAME_FUNCTION")
+            .unwrap_or_else(|_| self.name.clone())
+    }
+
+    fn update(&mut self, game: &mut SudokuGame, status_bar: &mut StatusBar) -> (String, Color) {
+        if let Err(e) = self.generic_game_callback(game, "__ON_UPDATE_FUNCTIONS__") {
+            error!("Lua 'Update' error: {e}");
+        }
+
+        if let Err(e) = self.update_wait_funcs(game) {
+            error!("Lua 'WaitMS' error: {e}");
+        }
+
+        game.flush_wanted_commands(status_bar);
+
+        let (text, colour) = self
+            .generic_single_callback::<(String, String)>(Some(game), "__ON_UPDATE_FUNCTION")
+            .unwrap_or((String::new(), "StatusBarItemOkay".to_string()));
+        (
+            text,
+            status_bar
+                .drawing
+                .colour(AppColour::from_str(&colour).unwrap_or_else(|()| {
+                    warn!(
+                        "Script {} attempted to use invalid status bar colour: {}",
+                        self.name, colour
+                    );
+                    AppColour::StatusBarItemError
+                })),
+        )
+    }
+
+    fn activated(&mut self, game: &mut SudokuGame, status_bar: &mut StatusBar) {
+        let status_bar_content = status_bar.buffer.clone();
+        let Ok(func) = self
+            .lua
+            .globals()
+            .get::<_, Function>("__ON_ACTIVATE_FUNCTION")
+        else {
+            error!("Lua '{}' error on activated (not found)", self.name);
+            return;
+        };
+        if let Err(e) = self.lua.scope(|scope| {
+            let bs = scope.create_userdata_ref_mut(game).unwrap();
+            func.call::<_, ()>((bs, status_bar_content))
+        }) {
+            error!("Lua '{}' error: {}", self.name, e);
+        }
+    }
+    fn board_init(&mut self, game: &mut SudokuGame, _status_bar: &mut StatusBar) {
+        let span = span!(Level::INFO, "RunLua");
+        let _enter = span.enter();
+
+        if let Err(e) = self.generic_game_callback(game, "__ON_BOARDGEN_FUNCTIONS__") {
+            error!("Lua 'BoardInit' error: {e}");
+        }
+    }
+
+    fn display_mode(&self) -> super::DisplayMode {
+        let display_mode = self
+            .lua
+            .globals()
+            .get::<_, String>("__DISPLAY_MODE")
+            .unwrap_or("Normal".to_string());
+
+        match display_mode.as_str() {
+            "Normal" => super::DisplayMode::Normal,
+            "NameOnly" => super::DisplayMode::NameOnly,
+            "StatusOnly" => super::DisplayMode::StatusOnly,
+            "None" => super::DisplayMode::None,
+            _ => panic!(
+                "Invalid display mode '{}' requested by script '{}'",
+                display_mode, self.name
+            ),
+        }
+    }
+
+    fn status(&mut self) -> super::ItemStatus {
+        super::ItemStatus::Ok(ItemOkData::LuaScript(self.name.clone()))
+    }
 }
 
 impl LuaScript {
@@ -143,6 +225,7 @@ events["on_update"] = function(callback)
     table.insert(__ON_UPDATE_FUNCTIONS__, callback)
 end
 
+
 __WAIT_FUNCTIONS__ = {}
 events["wait_ms"] = function(ms, callback)
     table.insert(__WAIT_FUNCTIONS__, { target = __systime_ms__() + ms, cb = callback, interval = -1 })
@@ -154,6 +237,30 @@ events["repeat_ms"] = function(ms, callback)
 end
 
 print = info
+
+script = {}
+
+__ON_NAME_FUNCTION = {}
+script["on_name"] = function(callback)
+    __ON_NAME_FUNCTION = callback
+end
+
+__ON_UPDATE_FUNCTION = {}
+script["on_update"] = function(callback)
+    __ON_UPDATE_FUNCTION = callback
+end
+
+__ON_ACTIVATE_FUNCTION = function(_game, _buffer) end
+script["on_activate"] = function(callback)
+    __ON_ACTIVATE_FUNCTION = callback
+end
+
+__DISPLAY_MODE = "Normal"
+script["display_none"] = function() __DISPLAY_MODE = "None" end
+script["display_normal"] = function() __DISPLAY_MODE = "Normal" end
+script["display_name_only"] = function() __DISPLAY_MODE = "NameOnly" end
+script["display_status_only"] = function() __DISPLAY_MODE = "StatusOnly" end
+
 "#,
             )
             .exec()
@@ -331,6 +438,23 @@ print = info
 
         Ok(())
     }
+
+    fn generic_single_callback<'lua, T: FromLuaMulti<'lua>>(
+        &'lua self,
+        sudoku: Option<&mut SudokuGame>,
+        name: &str,
+    ) -> LuaResult<T> {
+        let func = self.lua.globals().get::<_, Function>(name)?;
+
+        self.lua.scope(|scope| match sudoku {
+            Some(sudoku) => {
+                let bs = scope.create_userdata_ref_mut(sudoku)?;
+                func.call::<_, T>(bs)
+            }
+            None => func.call::<_, T>(()),
+        })
+    }
+
     fn update_wait_funcs(&self, sudoku: &mut SudokuGame) -> LuaResult<()> {
         let funcs = self.lua.globals().get::<_, Table>("__WAIT_FUNCTIONS__")?;
         let mut remove_keys = vec![];
@@ -391,12 +515,7 @@ impl LuaRun {
         }
     }
 
-    fn run(
-        &self,
-        item: &mut Eval,
-        game: &mut SudokuGame,
-        status_bar: &StatusBar,
-    ) -> LuaResult<Option<String>> {
+    fn run(&self, game: &mut SudokuGame, status_bar: &mut StatusBar) -> LuaResult<Option<String>> {
         let span = span!(Level::INFO, "RunLua");
         let _enter = span.enter();
 
@@ -408,7 +527,24 @@ impl LuaRun {
                 info!("Executing Lua script: {name}...");
                 let scr = LuaScript::exec(&name, &code, status_bar)?;
                 scr.generic_game_callback(game, "__ON_INIT_FUNCTIONS__")?;
-                item.scripts.push(scr);
+
+                let mut remove = None;
+                for (i, item) in status_bar.items.iter_mut().enumerate() {
+                    if let ItemStatus::Ok(ItemOkData::LuaScript(sc_name)) = item.status() {
+                        if name == sc_name {
+                            remove = Some(i);
+                            break;
+                        }
+                    }
+                }
+
+                if let Some(i) = remove {
+                    warn!("Script with name '{name}' is already loaded, replacing...");
+                    status_bar.items[i] = Box::new(scr);
+                } else {
+                    status_bar.items.push(Box::new(scr));
+                }
+
                 Ok(None)
             }
             LuaRun::Repl { .. } => {
@@ -426,8 +562,8 @@ impl LuaRun {
 }
 
 impl Item for Eval {
-    fn name(&self) -> &'static str {
-        "Eval"
+    fn name(&self) -> String {
+        "Eval".to_string()
     }
 
     fn activated(
@@ -445,16 +581,6 @@ impl Item for Eval {
                     return;
                 };
 
-                if let Some((idx, _)) = self
-                    .scripts
-                    .iter()
-                    .enumerate()
-                    .find(|(_, x)| x.name == file_name)
-                {
-                    warn!("Script with name '{file_name}' is already loaded, unloading...");
-                    self.scripts.remove(idx);
-                }
-
                 LuaRun::File {
                     code: file,
                     name: file_name.to_string(),
@@ -465,7 +591,7 @@ impl Item for Eval {
             },
         };
 
-        match code.run(self, game, status_bar) {
+        match code.run(game, status_bar) {
             Ok(Some(result)) => {
                 status_bar.buffer = result;
             }
@@ -474,32 +600,6 @@ impl Item for Eval {
                 error!("Lua Error: {e}");
             }
             _ => {}
-        }
-    }
-
-    fn update(&mut self, game: &mut SudokuGame, status_bar: &mut StatusBar) -> (String, Color) {
-        for scr in &self.scripts {
-            if let Err(e) = scr.generic_game_callback(game, "__ON_UPDATE_FUNCTIONS__") {
-                error!("Lua 'Update' error: {e}");
-            }
-
-            if let Err(e) = scr.update_wait_funcs(game) {
-                error!("Lua 'WaitMS' error: {e}");
-            }
-        }
-
-        game.flush_wanted_commands(status_bar);
-        (String::new(), WHITE)
-    }
-
-    fn board_init(&mut self, game: &mut SudokuGame, _status_bar: &mut StatusBar) {
-        let span = span!(Level::INFO, "RunLua");
-        let _enter = span.enter();
-
-        for scr in &self.scripts {
-            if let Err(e) = scr.generic_game_callback(game, "__ON_BOARDGEN_FUNCTIONS__") {
-                error!("Lua 'BoardInit' error: {e}");
-            }
         }
     }
 

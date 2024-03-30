@@ -65,8 +65,8 @@ impl Default for SolveTask {
 }
 
 impl Item for SolveTask {
-    fn name(&self) -> &'static str {
-        "CpuSolve"
+    fn name(&self) -> String {
+        "CpuSolve".to_string()
     }
 
     fn update(

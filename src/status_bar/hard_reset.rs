@@ -6,8 +6,8 @@ use super::Item;
 pub struct HardReset;
 
 impl Item for HardReset {
-    fn name(&self) -> &'static str {
-        "HardReset"
+    fn name(&self) -> String {
+        "HardReset".to_string()
     }
 
     fn activated(

@@ -24,8 +24,8 @@ impl Default for BackgroundImage {
 }
 
 impl Item for BackgroundImage {
-    fn name(&self) -> &'static str {
-        "BackgroundImage"
+    fn name(&self) -> String {
+        "BackgroundImage".to_string()
     }
 
     fn activated(

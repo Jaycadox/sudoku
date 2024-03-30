@@ -4,8 +4,8 @@ use super::Item;
 pub struct Dummy;
 
 impl Item for Dummy {
-    fn name(&self) -> &'static str {
-        "Dummy"
+    fn name(&self) -> String {
+        "Dummy".to_string()
     }
 
     fn activated(

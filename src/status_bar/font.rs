@@ -6,8 +6,8 @@ use super::Item;
 pub struct Font;
 
 impl Item for Font {
-    fn name(&self) -> &'static str {
-        "Font"
+    fn name(&self) -> String {
+        "Font".to_string()
     }
 
     fn activated(

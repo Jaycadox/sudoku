@@ -17,8 +17,8 @@ use super::{
 pub struct Add;
 
 impl Item for Add {
-    fn name(&self) -> &'static str {
-        "BuiltinAdd"
+    fn name(&self) -> String {
+        "BuiltinAdd".to_string()
     }
 
     fn activated(

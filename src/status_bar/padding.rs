@@ -4,8 +4,8 @@ use super::Item;
 pub struct Padding;
 
 impl Item for Padding {
-    fn name(&self) -> &'static str {
-        "Padding"
+    fn name(&self) -> String {
+        "Padding".to_string()
     }
 
     fn activated(

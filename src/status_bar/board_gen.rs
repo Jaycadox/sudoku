@@ -189,8 +189,8 @@ impl Default for BoardGen {
 }
 
 impl Item for BoardGen {
-    fn name(&self) -> &'static str {
-        "BoardGen"
+    fn name(&self) -> String {
+        "BoardGen".to_string()
     }
 
     fn shorthands(&self) -> Option<List> {

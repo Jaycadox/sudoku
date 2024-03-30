@@ -41,6 +41,7 @@ mod eval;
 #[allow(dead_code)]
 pub enum ItemOkData<'a> {
     Game(&'a SudokuGame),
+    LuaScript(String),
     None,
 }
 
@@ -86,7 +87,7 @@ pub enum HookAction<T> {
 }
 
 pub trait Item {
-    fn name(&self) -> &'static str;
+    fn name(&self) -> String;
     fn activated(&mut self, game: &mut SudokuGame, status_bar: &mut StatusBar);
 
     #[allow(unused_variables)]

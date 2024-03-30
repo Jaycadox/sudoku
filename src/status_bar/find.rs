@@ -9,8 +9,8 @@ use super::Item;
 pub struct Find;
 
 impl Item for Find {
-    fn name(&self) -> &'static str {
-        "Find"
+    fn name(&self) -> String {
+        "Find".to_string()
     }
 
     fn activated(

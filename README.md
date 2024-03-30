@@ -175,6 +175,8 @@ files.
 Note that if you try to load a script, whereby a script of the same name has already been loaded, the previous one would
 unload, and the new script would attempt to load.
 
+A script of type `File` behaves as if it were a regular status bar item, meaning it can be invoked via the status bar or buffer input, and can respond to activations and read the buffer state and whatnot.
+
 ## Scripting API usage
 
 ### logging (global namespace)
@@ -201,6 +203,38 @@ unload, and the new script would attempt to load.
 
 * Prints your message to the console with the `TRACE` level. Note that this will only print text to the console when the
   application is compiled in `Debug` mode.
+
+### script
+
+#### Note: Most functions which accept callbacks will add your callback to a list of callbacks, and then invoke them all. This is NOT the case for `script` function callbacks, as there can be only one implementation of their underlying function, due to ambiguities regarding callback return values.
+
+#### `script.on_name(callback: function() -> string)`
+
+* Invokes callback every frame, and uses the returned string for the name in the status bar
+
+#### `script.on_update(callback: function(game: Game) -> (string, string))`
+
+* Invokes callback every frame, first tuple string denotes item status text, and the second string denotes colour, of which valid colours are specified under the `ColourOverwrite` section
+
+#### `script.on_activate(callback: function(game: Game, buffer: string))`
+
+* Invokes callback when item is activated either manually or via the buffer, also provides the current state of the buffer
+
+#### `script.display_none()`
+
+* Makes script not display on status bar
+
+#### `script.display_normal()`
+
+* Makes script display name and status text on status bar
+
+#### `script.display_name_only()`
+
+* Makes script display name only on status bar
+
+#### `script.display_status_only()`
+
+* Makes script display status only on status bar
 
 ### events
 
