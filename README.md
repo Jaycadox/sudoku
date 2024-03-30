@@ -173,7 +173,7 @@ files.
 * Either of the above can be placed inside your `.sudokurc`
 
 Note that if you try to load a script, whereby a script of the same name has already been loaded, the previous one would
-unload, and the new script would attempt to load.
+unload, and the new script would attempt to load. This behaviour can be bypassed by prefixing the script name with `!`, example: `=@!script.lua`, thus allowing multiple instances of the same Lua script at the same time.
 
 A script of type `File` behaves as if it were a regular status bar item, meaning it can be invoked via the status bar or buffer input, and can respond to activations and read the buffer state and whatnot.
 

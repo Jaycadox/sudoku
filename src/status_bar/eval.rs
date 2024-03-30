@@ -76,8 +76,14 @@ impl LuaUserData for SudokuGame {
 pub struct Eval;
 
 enum LuaRun {
-    File { code: String, name: String },
-    Repl { code: String },
+    File {
+        code: String,
+        allow_duplicate: bool,
+        name: String,
+    },
+    Repl {
+        code: String,
+    },
 }
 
 struct LuaScript {
@@ -523,17 +529,22 @@ impl LuaRun {
         let code = self.code();
 
         match self {
-            LuaRun::File { .. } => {
+            LuaRun::File {
+                allow_duplicate, ..
+            } => {
                 info!("Executing Lua script: {name}...");
                 let scr = LuaScript::exec(&name, &code, status_bar)?;
                 scr.generic_game_callback(game, "__ON_INIT_FUNCTIONS__")?;
 
                 let mut remove = None;
-                for (i, item) in status_bar.items.iter_mut().enumerate() {
-                    if let ItemStatus::Ok(ItemOkData::LuaScript(sc_name)) = item.status() {
-                        if name == sc_name {
-                            remove = Some(i);
-                            break;
+
+                if !allow_duplicate {
+                    for (i, item) in status_bar.items.iter_mut().enumerate() {
+                        if let ItemStatus::Ok(ItemOkData::LuaScript(sc_name)) = item.status() {
+                            if name == sc_name {
+                                remove = Some(i);
+                                break;
+                            }
                         }
                     }
                 }
@@ -576,13 +587,21 @@ impl Item for Eval {
 
         let code = match (status_bar.buffer.get(0..1), status_bar.buffer.get(1..)) {
             (Some("@"), Some(file_name)) => {
-                let Ok(file) = std::fs::read_to_string(config::get_file_path(file_name)) else {
+                let mut file_name = file_name.to_string();
+                let mut allow_duplicate = false;
+                if file_name.starts_with('!') {
+                    allow_duplicate = true;
+                    file_name.remove(0);
+                }
+
+                let Ok(file) = std::fs::read_to_string(config::get_file_path(&file_name)) else {
                     status_bar.buffer = format!("FileNotFound: {file_name}");
                     return;
                 };
 
                 LuaRun::File {
                     code: file,
+                    allow_duplicate,
                     name: file_name.to_string(),
                 }
             }
