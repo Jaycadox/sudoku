@@ -110,7 +110,10 @@ impl Item for LuaScript {
 
         let (text, colour) = self
             .generic_single_callback::<(String, String)>(Some(game), "__ON_UPDATE_FUNCTION")
-            .unwrap_or((String::new(), "StatusBarItemOkay".to_string()));
+            .unwrap_or_else(|e| {
+                error!("Lua 'Update' error: {e}");
+                (String::new(), "StatusBarItemOkay".to_string())
+            });
         (
             text,
             status_bar
